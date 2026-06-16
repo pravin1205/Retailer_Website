@@ -1,0 +1,13 @@
+com\marketly\tenant\service\TenantService.class
+com\marketly\tenant\exception\GlobalExceptionHandler.class
+com\marketly\tenant\event\TenantEventProducer.class
+com\marketly\tenant\TenantServiceApplication.class
+com\marketly\tenant\entity\Tenant.class
+com\marketly\tenant\dto\CreateTenantRequest.class
+com\marketly\tenant\entity\Tenant$TenantBuilder.class
+com\marketly\tenant\entity\TenantDomain$TenantDomainBuilder.class
+com\marketly\tenant\entity\TenantSetting$TenantSettingBuilder.class
+com\marketly\tenant\entity\TenantSetting.class
+com\marketly\tenant\entity\TenantDomain.class
+com\marketly\tenant\controller\TenantController.class
+com\marketly\tenant\repository\TenantRepository.class

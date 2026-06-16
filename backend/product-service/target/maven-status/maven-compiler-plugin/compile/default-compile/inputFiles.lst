@@ -1,0 +1,15 @@
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\config\CacheConfig.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\controller\ProductController.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\dto\CreateProductRequest.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\entity\Category.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\entity\Inventory.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\entity\Product.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\entity\ProductVariant.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\event\OrderEventConsumer.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\event\ProductEventProducer.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\exception\GlobalExceptionHandler.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\ProductServiceApplication.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\repository\CategoryRepository.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\repository\InventoryRepository.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\repository\ProductRepository.java
+d:\Retailer_Website\backend\product-service\src\main\java\com\marketly\product\service\ProductService.java

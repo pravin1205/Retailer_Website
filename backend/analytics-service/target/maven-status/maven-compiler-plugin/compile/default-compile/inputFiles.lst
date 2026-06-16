@@ -1,0 +1,8 @@
+d:\Retailer_Website\backend\analytics-service\src\main\java\com\marketly\analytics\AnalyticsServiceApplication.java
+d:\Retailer_Website\backend\analytics-service\src\main\java\com\marketly\analytics\config\CacheConfig.java
+d:\Retailer_Website\backend\analytics-service\src\main\java\com\marketly\analytics\controller\AnalyticsController.java
+d:\Retailer_Website\backend\analytics-service\src\main\java\com\marketly\analytics\dto\DashboardResponse.java
+d:\Retailer_Website\backend\analytics-service\src\main\java\com\marketly\analytics\entity\OrderSummary.java
+d:\Retailer_Website\backend\analytics-service\src\main\java\com\marketly\analytics\event\OrderEventConsumer.java
+d:\Retailer_Website\backend\analytics-service\src\main\java\com\marketly\analytics\repository\OrderSummaryRepository.java
+d:\Retailer_Website\backend\analytics-service\src\main\java\com\marketly\analytics\service\DashboardService.java

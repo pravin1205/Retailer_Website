@@ -1,0 +1,12 @@
+d:\Retailer_Website\backend\customer-service\src\main\java\com\marketly\customer\controller\CustomerController.java
+d:\Retailer_Website\backend\customer-service\src\main\java\com\marketly\customer\CustomerServiceApplication.java
+d:\Retailer_Website\backend\customer-service\src\main\java\com\marketly\customer\dto\AddressRequest.java
+d:\Retailer_Website\backend\customer-service\src\main\java\com\marketly\customer\dto\CustomerRequest.java
+d:\Retailer_Website\backend\customer-service\src\main\java\com\marketly\customer\entity\Address.java
+d:\Retailer_Website\backend\customer-service\src\main\java\com\marketly\customer\entity\Customer.java
+d:\Retailer_Website\backend\customer-service\src\main\java\com\marketly\customer\event\OrderCompletedConsumer.java
+d:\Retailer_Website\backend\customer-service\src\main\java\com\marketly\customer\event\UserRegisteredConsumer.java
+d:\Retailer_Website\backend\customer-service\src\main\java\com\marketly\customer\exception\GlobalExceptionHandler.java
+d:\Retailer_Website\backend\customer-service\src\main\java\com\marketly\customer\repository\AddressRepository.java
+d:\Retailer_Website\backend\customer-service\src\main\java\com\marketly\customer\repository\CustomerRepository.java
+d:\Retailer_Website\backend\customer-service\src\main\java\com\marketly\customer\service\CustomerService.java

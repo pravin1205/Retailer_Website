@@ -1,0 +1,12 @@
+com\marketly\analytics\config\CacheConfig.class
+com\marketly\analytics\AnalyticsServiceApplication.class
+com\marketly\analytics\dto\DashboardResponse$DailyStat$DailyStatBuilder.class
+com\marketly\analytics\entity\OrderSummary$OrderSummaryBuilder.class
+com\marketly\analytics\entity\OrderSummary.class
+com\marketly\analytics\service\DashboardService.class
+com\marketly\analytics\repository\OrderSummaryRepository.class
+com\marketly\analytics\dto\DashboardResponse.class
+com\marketly\analytics\event\OrderEventConsumer.class
+com\marketly\analytics\dto\DashboardResponse$DailyStat.class
+com\marketly\analytics\controller\AnalyticsController.class
+com\marketly\analytics\dto\DashboardResponse$DashboardResponseBuilder.class

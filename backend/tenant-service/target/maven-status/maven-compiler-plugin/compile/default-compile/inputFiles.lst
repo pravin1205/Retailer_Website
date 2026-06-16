@@ -1,0 +1,10 @@
+d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\controller\TenantController.java
+d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\dto\CreateTenantRequest.java
+d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\entity\Tenant.java
+d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\entity\TenantDomain.java
+d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\entity\TenantSetting.java
+d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\event\TenantEventProducer.java
+d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\exception\GlobalExceptionHandler.java
+d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\repository\TenantRepository.java
+d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\service\TenantService.java
+d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\TenantServiceApplication.java

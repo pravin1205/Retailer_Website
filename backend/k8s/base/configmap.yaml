@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: marketly-config
+  namespace: marketly
+data:
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+  DB_NAME: "marketly"
+  DB_USERNAME: "marketly"
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-service:9092"
+  EUREKA_SERVER_URL: "http://identity-service:8081/eureka"
+  SPRING_PROFILES_ACTIVE: "production"

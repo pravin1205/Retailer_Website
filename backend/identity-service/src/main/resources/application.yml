@@ -1,0 +1,90 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: identity-service
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:marketly}
+    username: ${DB_USERNAME:marketly}
+    password: ${DB_PASSWORD:marketly_dev}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: identity
+        format_sql: false
+    packages-to-scan: com.marketly.identity.entity
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    schemas: identity
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    repair-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-key-change-this-in-production-min-256-bits-!!}
+    access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:900}
+    refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:7}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.marketly: INFO
+    org.springframework.security: WARN

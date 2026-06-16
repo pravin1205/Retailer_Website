@@ -1,0 +1,9 @@
+com\marketly\notification\service\NotificationService.class
+com\marketly\notification\entity\Notification.class
+com\marketly\notification\controller\NotificationController.class
+com\marketly\notification\NotificationServiceApplication.class
+com\marketly\notification\websocket\WebSocketConfig.class
+com\marketly\notification\entity\Notification$NotificationBuilder.class
+com\marketly\notification\channel\EmailChannel.class
+com\marketly\notification\event\NotificationEventConsumer.class
+com\marketly\notification\repository\NotificationRepository.class

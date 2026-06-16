@@ -1,0 +1,3 @@
+com\marketly\gateway\GatewayApplication.class
+com\marketly\gateway\filter\CorrelationIdFilter.class
+com\marketly\gateway\filter\JwtAuthFilter.class

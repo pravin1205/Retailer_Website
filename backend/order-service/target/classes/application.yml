@@ -1,0 +1,85 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: order-service
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:marketly}
+    username: ${DB_USERNAME:marketly}
+    password: ${DB_PASSWORD:marketly_dev}
+    hikari:
+      maximum-pool-size: 15
+      minimum-idle: 3
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: order_data
+    packages-to-scan: com.marketly.order.entity
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    schemas: order_data
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    repair-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: order-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+# Feign client config
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 3000
+        readTimeout: 5000
+  circuitbreaker:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.marketly: INFO
