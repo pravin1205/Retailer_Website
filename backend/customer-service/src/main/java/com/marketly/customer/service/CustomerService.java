@@ -78,8 +78,9 @@ public class CustomerService {
                                                 int page, int size) {
         PageRequest pageable = PageRequest.of(
             page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Customer> result = customerRepository
-            .findByTenantIdFiltered(tenantId, search, pageable);
+        Page<Customer> result = (search != null && !search.isBlank())
+            ? customerRepository.findByTenantIdAndSearch(tenantId, search.trim(), pageable)
+            : customerRepository.findByTenantId(tenantId, pageable);
         return PageResponse.of(result);
     }
 

@@ -60,6 +60,7 @@ app:
     secret: ${JWT_SECRET:dev-secret-key-change-this-in-production-min-256-bits-!!}
     access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:900}
     refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:7}
+  tenant-service-url: ${TENANT_SERVICE_URL:http://localhost:8082}
 
 management:
   endpoints:

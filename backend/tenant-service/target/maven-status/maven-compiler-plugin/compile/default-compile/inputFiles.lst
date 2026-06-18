@@ -1,5 +1,8 @@
+d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\config\RedisConfig.java
+d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\controller\SellerOnboardingController.java
 d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\controller\TenantController.java
 d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\dto\CreateTenantRequest.java
+d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\dto\KycRequest.java
 d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\entity\Tenant.java
 d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\entity\TenantDomain.java
 d:\Retailer_Website\backend\tenant-service\src\main\java\com\marketly\tenant\entity\TenantSetting.java

@@ -1,5 +1,6 @@
 package com.marketly.tenant.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.marketly.common.entity.AuditableEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -19,6 +20,7 @@ public class TenantDomain extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "tenant_id", nullable = false)
+    @JsonIgnore
     private Tenant tenant;
 
     @Column(name = "domain", nullable = false, length = 253)

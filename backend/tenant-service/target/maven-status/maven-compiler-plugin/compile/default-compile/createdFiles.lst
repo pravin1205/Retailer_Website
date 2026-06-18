@@ -1,3 +1,4 @@
+com\marketly\tenant\config\RedisConfig.class
 com\marketly\tenant\service\TenantService.class
 com\marketly\tenant\exception\GlobalExceptionHandler.class
 com\marketly\tenant\event\TenantEventProducer.class

@@ -1,6 +1,7 @@
 package com.marketly.customer.entity;
 
 import com.marketly.common.entity.TenantAwareEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -65,6 +66,7 @@ public class Customer extends TenantAwareEntity {
     @Builder.Default
     private java.math.BigDecimal totalSpent = java.math.BigDecimal.ZERO;
 
+    @JsonIgnore   // addresses are served via GET /customers/me/addresses, never inline
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL,
                orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default

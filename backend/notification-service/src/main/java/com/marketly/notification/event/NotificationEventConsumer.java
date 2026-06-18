@@ -150,6 +150,114 @@ public class NotificationEventConsumer {
         }
     }
 
+    // ── OTP Dispatch ──────────────────────────────────────────────────────
+
+    @KafkaListener(
+        topics = "identity.user.otp-requested",
+        groupId = "notification-service-otp-group",
+        containerFactory = "kafkaListenerContainerFactory"
+    )
+    public void onOtpRequested(Map<String, Object> event) {
+        try {
+            Map<String, Object> payload = extract(event);
+            String phone   = str(payload.get("phone"));
+            String otpCode = str(payload.get("otpCode"));
+
+            // Use dedicated dispatchOtp() — skips DB persistence because
+            // recipient has no userId yet at OTP-send time (pre-registration).
+            notificationService.dispatchOtp(phone, otpCode);
+
+        } catch (Exception e) {
+            log.error("Failed to handle OTP notification: {}", e.getMessage(), e);
+        }
+    }
+
+    // ── KYC Submitted ─────────────────────────────────────────────────────
+
+    @KafkaListener(
+        topics = "tenant.seller.kyc-submitted",
+        groupId = "notification-service-kyc-group",
+        containerFactory = "kafkaListenerContainerFactory"
+    )
+    public void onKycSubmitted(Map<String, Object> event) {
+        try {
+            Map<String, Object> payload = extract(event);
+            UUID   tenantId    = uuid(event.get("tenantId"));
+            UUID   ownerUserId = uuid(payload.get("ownerUserId"));
+            String ownerEmail  = str(payload.get("ownerEmail"));
+            String storeName   = str(payload.get("storeName"));
+
+            notificationService.dispatchAll(
+                tenantId, ownerUserId, ownerEmail,
+                "KYC_UPDATE",
+                "KYC Submitted — " + storeName,
+                "Your KYC documents have been submitted for " + storeName +
+                ". Our team will review within 1-2 business days.",
+                tenantId, "TENANT"
+            );
+        } catch (Exception e) {
+            log.error("Failed to send KYC submitted notification: {}", e.getMessage(), e);
+        }
+    }
+
+    // ── Seller Approved ───────────────────────────────────────────────────
+
+    @KafkaListener(
+        topics = "tenant.seller.approved",
+        groupId = "notification-service-seller-approved-group",
+        containerFactory = "kafkaListenerContainerFactory"
+    )
+    public void onSellerApproved(Map<String, Object> event) {
+        try {
+            Map<String, Object> payload = extract(event);
+            UUID   tenantId    = uuid(event.get("tenantId"));
+            UUID   ownerUserId = uuid(payload.get("ownerUserId"));
+            String ownerEmail  = str(payload.get("ownerEmail"));
+            String storeName   = str(payload.get("storeName"));
+            String storeUrl    = str(payload.get("storeUrl"));
+
+            notificationService.dispatchAll(
+                tenantId, ownerUserId, ownerEmail,
+                "SELLER_UPDATE",
+                "Store Approved — " + storeName,
+                "Congratulations! Your store '" + storeName + "' is now live at " + storeUrl +
+                ". Visit your admin dashboard to start adding products.",
+                tenantId, "TENANT"
+            );
+        } catch (Exception e) {
+            log.error("Failed to send seller approved notification: {}", e.getMessage(), e);
+        }
+    }
+
+    // ── Seller Rejected ───────────────────────────────────────────────────
+
+    @KafkaListener(
+        topics = "tenant.seller.rejected",
+        groupId = "notification-service-seller-rejected-group",
+        containerFactory = "kafkaListenerContainerFactory"
+    )
+    public void onSellerRejected(Map<String, Object> event) {
+        try {
+            Map<String, Object> payload = extract(event);
+            UUID   tenantId    = uuid(event.get("tenantId"));
+            UUID   ownerUserId = uuid(payload.get("ownerUserId"));
+            String ownerEmail  = str(payload.get("ownerEmail"));
+            String storeName   = str(payload.get("storeName"));
+            String reason      = str(payload.get("reason"));
+
+            notificationService.dispatchAll(
+                tenantId, ownerUserId, ownerEmail,
+                "SELLER_UPDATE",
+                "KYC Rejected — " + storeName,
+                "Your KYC for '" + storeName + "' was not approved. Reason: " + reason +
+                ". Please resubmit with the correct documents.",
+                tenantId, "TENANT"
+            );
+        } catch (Exception e) {
+            log.error("Failed to send seller rejected notification: {}", e.getMessage(), e);
+        }
+    }
+
     // ── Welcome Email ─────────────────────────────────────────────────────
 
     @KafkaListener(

@@ -13,8 +13,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export const Route = createFileRoute("/s/$tenant/cart")({
   head: ({ params }) => ({ meta: [{ title: `Cart · ${params.tenant}` }] }),
-  loader: ({ context }) => {
-    context.queryClient.ensureQueryData({ queryKey: qk.coupons, queryFn: api.listCoupons });
+  loader: ({ context, params }) => {
+    context.queryClient.ensureQueryData({ queryKey: qk.coupons(params.tenant), queryFn: () => api.listCoupons(params.tenant) });
   },
   component: CartPage,
 });
@@ -25,7 +25,7 @@ function CartPage() {
   const setQty = useCartStore((s) => s.setQty);
   const remove = useCartStore((s) => s.remove);
   const { data: tenant } = useSuspenseQuery({ queryKey: qk.tenant(slug), queryFn: () => api.getTenant(slug) });
-  const { data: coupons } = useSuspenseQuery({ queryKey: qk.coupons, queryFn: api.listCoupons });
+  const { data: coupons } = useSuspenseQuery({ queryKey: qk.coupons(slug), queryFn: () => api.listCoupons(slug) });
 
   const queries = useQueries({
     queries: items.map((it) => ({ queryKey: qk.product(it.productId), queryFn: () => api.getProduct(it.productId) })),

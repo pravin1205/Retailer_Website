@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Bell } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { Notification } from "@/stores/notifications";
+import type { Notification } from "@/stores/notification";
 
 interface Props {
   unread: number;

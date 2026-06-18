@@ -10,6 +10,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
@@ -19,6 +20,7 @@ import reactor.core.publisher.Mono;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Global filter that validates JWT tokens on all protected routes.
@@ -31,27 +33,36 @@ import java.util.List;
 @Slf4j
 public class JwtAuthFilter implements GlobalFilter, Ordered {
 
-    private static final List<String> PUBLIC_PATHS = List.of(
-        "/api/v1/auth/register",
-        "/api/v1/auth/login",
-        "/api/v1/auth/refresh",
-        "/api/v1/auth/password/forgot",
-        "/api/v1/auth/password/reset",
+    // Exact prefix matches that are ALWAYS public regardless of method
+    private static final List<String> PUBLIC_PATH_PREFIXES = List.of(
+        "/api/v1/auth/",      // all auth endpoints
         "/actuator/health",
         "/v3/api-docs",
         "/swagger-ui"
     );
+
+    // GET-only public paths (products and categories are read-public; write operations require auth)
+    private static final List<String> PUBLIC_GET_PREFIXES = List.of(
+        "/api/v1/products",
+        "/api/v1/categories"
+    );
+
+    // GET /api/v1/tenants          → public list
+    // GET /api/v1/tenants/{slug}   → public single (storefront landing, slug check)
+    // All POST/PATCH/PUT/DELETE on /api/v1/tenants/** → require auth
+    private static final Pattern PUBLIC_TENANT_GET =
+        Pattern.compile("^/api/v1/tenants(/[^/]+)?$");
 
     @Value("${app.jwt.secret}")
     private String jwtSecret;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        String path = exchange.getRequest().getURI().getPath();
-
-        if (isPublicPath(path)) {
+        if (isPublicPath(exchange)) {
             return chain.filter(exchange);
         }
+
+        String path = exchange.getRequest().getURI().getPath();
 
         String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
@@ -72,9 +83,16 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             List<String> roles = claims.get("roles", List.class);
             String rolesHeader = roles != null ? String.join(",", roles) : "";
 
+            // Remove any X-Tenant-ID already set by TenantResolutionFilter (order -200)
+            // then re-set it authoritatively from the JWT claim.
             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                .header("X-User-ID",  userId)
-                .header("X-Roles",    rolesHeader)
+                .headers(h -> {
+                    h.remove("X-User-ID");
+                    h.remove("X-Roles");
+                    h.remove("X-Tenant-ID");
+                })
+                .header("X-User-ID",   userId)
+                .header("X-Roles",     rolesHeader)
                 .header("X-Tenant-ID", tenantId != null ? tenantId : "")
                 .build();
 
@@ -96,8 +114,22 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             .getPayload();
     }
 
-    private boolean isPublicPath(String path) {
-        return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
+    private boolean isPublicPath(ServerWebExchange exchange) {
+        String path   = exchange.getRequest().getURI().getPath();
+        HttpMethod method = exchange.getRequest().getMethod();
+
+        // Always-public prefixes (auth endpoints, docs, health)
+        if (PUBLIC_PATH_PREFIXES.stream().anyMatch(path::startsWith)) return true;
+
+        // GET-only public paths (products, categories)
+        if (HttpMethod.GET.equals(method) &&
+            PUBLIC_GET_PREFIXES.stream().anyMatch(path::startsWith)) return true;
+
+        // GET /api/v1/tenants  and  GET /api/v1/tenants/{slug}  are public
+        // Everything else on /api/v1/tenants/** (POST, PATCH, PUT, sub-paths like /kyc, /approve, /review) requires auth
+        if (HttpMethod.GET.equals(method) && PUBLIC_TENANT_GET.matcher(path).matches()) return true;
+
+        return false;
     }
 
     @Override

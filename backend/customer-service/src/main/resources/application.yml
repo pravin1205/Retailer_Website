@@ -61,6 +61,9 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+app:
+  tenant-service-url: ${TENANT_SERVICE_URL:http://localhost:8082}
+
 logging:
   level:
     com.marketly: INFO

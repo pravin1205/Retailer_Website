@@ -84,7 +84,7 @@ public class ProductService {
         return product;
     }
 
-    @Cacheable(value = "product-detail", key = "#id.toString() + ':' + #tenantId.toString()")
+    @Cacheable(value = "product-detail", key = "#a0.toString() + ':' + #a1.toString()")
     @Transactional(readOnly = true)
     public Product getProduct(UUID id, UUID tenantId) {
         return productRepository.findByIdAndTenantIdAndDeletedAtIsNull(id, tenantId)

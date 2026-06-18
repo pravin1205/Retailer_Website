@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import React, { useState, useEffect, useCallback } from "react";
 import { ShieldCheck, Store } from "lucide-react";
 import { api, qk } from "@/lib/api";
 import { useAuthStore } from "@/stores";
@@ -18,13 +18,13 @@ export const Route = createFileRoute("/s/$tenant/admin")({
     context.queryClient.ensureQueryData({
       queryKey: qk.tenant(params.tenant),
       queryFn: () => api.getTenant(params.tenant),
-    }),
+    }).catch(() => undefined),
   component: AdminLayout,
 });
 
 function AdminLayout() {
   const { tenant: slug } = Route.useParams();
-  const { data: tenant } = useSuspenseQuery({ queryKey: qk.tenant(slug), queryFn: () => api.getTenant(slug) });
+  const { data: tenant } = useQuery({ queryKey: qk.tenant(slug), queryFn: () => api.getTenant(slug), retry: false });
   const user = useAuthStore((s) => s.user);
 
   if (!tenant) return null;
@@ -48,8 +48,74 @@ function AdminLayout() {
 
 function OwnerSignInWall({ tenantName }: { tenantName: string }) {
   const { tenant: slug } = Route.useParams();
-  const loginAs = useAuthStore((s) => s.loginAs);
-  const [email, setEmail] = useState("owner@marketly.in");
+  const login        = useAuthStore((s) => s.login);
+  const loginFromOtp = useAuthStore((s) => s.loginFromOtp);
+  const loading      = useAuthStore((s) => s.loading);
+
+  // "otp" | "password"
+  const [tab, setTab] = useState<"otp" | "password">("otp");
+  const [error, setError] = useState<string | null>(null);
+
+  // ── OTP tab state ─────────────────────────────────────────────────────
+  const [phone,       setPhone]       = useState("");
+  const [otp,         setOtp]         = useState("");
+  const [otpSent,     setOtpSent]     = useState(false);
+  const [sending,     setSending]     = useState(false);
+  const [verifying,   setVerifying]   = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+
+  useEffect(() => {
+    if (resendTimer <= 0) return;
+    const t = setInterval(() => setResendTimer((n) => (n > 0 ? n - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [resendTimer]);
+
+  const handleSendOtp = useCallback(async () => {
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      setError("Enter a valid 10-digit mobile number"); return;
+    }
+    setError(null); setSending(true);
+    try {
+      await api.sendOtp(phone);
+      setOtpSent(true);
+      setResendTimer(30);
+      toast.success("OTP sent to " + phone);
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? "Failed to send OTP");
+    } finally { setSending(false); }
+  }, [phone]);
+
+  const handleVerifyOtp = useCallback(async () => {
+    if (otp.length !== 6) { setError("Enter the 6-digit OTP"); return; }
+    setError(null); setVerifying(true);
+    try {
+      const result = await api.verifyOtp(phone, otp, { tenantSlug: slug, role: "TENANT_OWNER" });
+      loginFromOtp(result, slug);
+      toast.success("Signed in");
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? "Invalid OTP");
+    } finally { setVerifying(false); }
+  }, [otp, phone, slug, loginFromOtp]);
+
+  // ── Password tab state ────────────────────────────────────────────────
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      await login(email, password, slug);
+      toast.success("Signed in");
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? "Invalid credentials");
+    }
+  };
+
+  const switchTab = (t: "otp" | "password") => {
+    setTab(t); setError(null);
+    setOtpSent(false); setOtp(""); setPhone("");
+  };
 
   return (
     <div className="grid min-h-dvh place-items-center px-4 py-10">
@@ -61,31 +127,100 @@ function OwnerSignInWall({ tenantName }: { tenantName: string }) {
         <p className="mt-1 text-sm text-muted-foreground">
           Manage <span className="font-medium text-foreground">{tenantName}</span> — orders, inventory, customers and more.
         </p>
-        <form
-          className="mt-5 space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            loginAs(email, "owner");
-            toast.success("Signed in as store owner");
-          }}
-        >
-          <div>
-            <Label htmlFor="oe" className="mb-1.5 block text-[12.5px] font-medium">Email</Label>
-            <Input id="oe" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+
+        {/* Tab switcher */}
+        <div className="mt-5 flex rounded-xl bg-surface-muted p-1 text-sm font-medium">
+          <button
+            onClick={() => switchTab("otp")}
+            className={`flex-1 rounded-lg py-2 transition-colors ${tab === "otp" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Mobile OTP
+          </button>
+          <button
+            onClick={() => switchTab("password")}
+            className={`flex-1 rounded-lg py-2 transition-colors ${tab === "password" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Email & Password
+          </button>
+        </div>
+
+        {error && (
+          <div className="mt-4 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
           </div>
-          <Button type="submit" className="h-11 w-full rounded-full text-sm font-semibold">
-            Enter dashboard
-          </Button>
-        </form>
+        )}
+
+        {/* ── OTP tab ── */}
+        {tab === "otp" && (
+          <div className="mt-4 space-y-3">
+            <div>
+              <Label className="mb-1.5 block text-[12.5px] font-medium">Mobile number</Label>
+              <Input
+                type="tel"
+                placeholder="10-digit mobile number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                disabled={otpSent}
+                className="rounded-xl"
+              />
+            </div>
+
+            {!otpSent ? (
+              <Button onClick={handleSendOtp} disabled={sending || phone.length !== 10} className="h-11 w-full rounded-full text-sm font-semibold">
+                {sending ? "Sending…" : "Send OTP"}
+              </Button>
+            ) : (
+              <>
+                <div>
+                  <Label className="mb-1.5 block text-[12.5px] font-medium">Enter OTP</Label>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="6-digit OTP"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    className="rounded-xl tracking-widest"
+                    autoFocus
+                  />
+                </div>
+                <Button onClick={handleVerifyOtp} disabled={verifying || otp.length !== 6} className="h-11 w-full rounded-full text-sm font-semibold">
+                  {verifying ? "Verifying…" : "Verify & Sign in"}
+                </Button>
+                <p className="text-center text-[11.5px] text-muted-foreground">
+                  {resendTimer > 0
+                    ? `Resend OTP in ${resendTimer}s`
+                    : <button onClick={handleSendOtp} className="text-primary hover:underline">Resend OTP</button>
+                  }
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Password tab ── */}
+        {tab === "password" && (
+          <form className="mt-4 space-y-3" onSubmit={handlePasswordSubmit}>
+            <div>
+              <Label htmlFor="oe" className="mb-1.5 block text-[12.5px] font-medium">Email</Label>
+              <Input id="oe" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="rounded-xl" />
+            </div>
+            <div>
+              <Label htmlFor="op" className="mb-1.5 block text-[12.5px] font-medium">Password</Label>
+              <Input id="op" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="rounded-xl" />
+            </div>
+            <Button type="submit" disabled={loading} className="h-11 w-full rounded-full text-sm font-semibold">
+              {loading ? "Signing in…" : "Sign in to dashboard"}
+            </Button>
+          </form>
+        )}
+
         <div className="mt-5 flex items-center justify-between text-[11.5px] text-muted-foreground">
           <Link to="/s/$tenant" params={{ tenant: slug }} className="inline-flex items-center gap-1 hover:text-foreground">
             <Store className="h-3.5 w-3.5" /> Back to storefront
           </Link>
-          <Link to="/auth/login" className="text-primary hover:underline">Customer login</Link>
+          <Link to="/onboarding/seller" className="text-primary hover:underline">Register as seller</Link>
         </div>
-        <p className="mt-4 rounded-xl bg-surface-muted px-3 py-2 text-[11px] text-muted-foreground">
-          Demo: any email works. Owner role is mocked on the client.
-        </p>
       </div>
     </div>
   );

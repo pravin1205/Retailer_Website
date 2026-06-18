@@ -1,5 +1,6 @@
 package com.marketly.product.controller;
 
+import com.marketly.common.exception.BusinessException;
 import com.marketly.common.dto.ApiResponse;
 import com.marketly.common.dto.PageResponse;
 import com.marketly.common.tenant.TenantContext;
@@ -12,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -27,13 +29,16 @@ public class ProductController {
     @GetMapping
     @Operation(summary = "List products for the current tenant")
     public ResponseEntity<ApiResponse<PageResponse<Product>>> listProducts(
-            @RequestHeader("X-Tenant-ID") String tenantIdHeader,
+            @RequestHeader(value = "X-Tenant-ID", required = false) String tenantIdHeader,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) Boolean isFeatured,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
+        if (!StringUtils.hasText(tenantIdHeader)) {
+            throw new BusinessException("MISSING_TENANT", "X-Tenant-ID header is required.", HttpStatus.BAD_REQUEST);
+        }
         UUID tenantId = UUID.fromString(tenantIdHeader);
         TenantContext.set(tenantId);
         try {

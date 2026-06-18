@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { useTenantNotifications, useNotifStore } from "@/stores/notifications";
+import { useTenantNotifications, useNotifStore } from "@/stores/notification";
 import { NotificationList } from "@/components/notifications/NotificationList";
 
 export const Route = createFileRoute("/s/$tenant/admin/notifications")({

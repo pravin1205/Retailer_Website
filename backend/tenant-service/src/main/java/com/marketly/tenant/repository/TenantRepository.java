@@ -16,10 +16,20 @@ public interface TenantRepository extends JpaRepository<Tenant, UUID> {
 
     boolean existsBySlugAndDeletedAtIsNull(String slug);
 
-    @Query("SELECT t FROM Tenant t WHERE t.deletedAt IS NULL " +
-           "AND (:search IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-           "AND (:status IS NULL OR t.status = :status) " +
-           "AND (:category IS NULL OR t.category = :category)")
+    @Query(
+        value = "SELECT * FROM tenant.tenants t " +
+                "WHERE t.deleted_at IS NULL " +
+                "AND (CAST(:search AS text) IS NULL OR LOWER(t.name) LIKE LOWER('%' || CAST(:search AS text) || '%')) " +
+                "AND (CAST(:status AS text) IS NULL OR t.status = CAST(:status AS text)) " +
+                "AND (CAST(:category AS text) IS NULL OR t.category = CAST(:category AS text)) " +
+                "ORDER BY t.created_at DESC",
+        countQuery = "SELECT COUNT(*) FROM tenant.tenants t " +
+                "WHERE t.deleted_at IS NULL " +
+                "AND (CAST(:search AS text) IS NULL OR LOWER(t.name) LIKE LOWER('%' || CAST(:search AS text) || '%')) " +
+                "AND (CAST(:status AS text) IS NULL OR t.status = CAST(:status AS text)) " +
+                "AND (CAST(:category AS text) IS NULL OR t.category = CAST(:category AS text))",
+        nativeQuery = true
+    )
     Page<Tenant> findAllFiltered(
         @Param("search") String search,
         @Param("status") String status,

@@ -35,7 +35,14 @@ function AccountPage() {
                 <h2 className="text-lg font-semibold">Welcome to Marketly</h2>
                 <p className="text-sm text-muted-foreground">Sign in to save addresses, track orders & earn loyalty points.</p>
               </div>
-              <Button asChild className="rounded-full"><Link to="/auth/login">Sign in</Link></Button>
+              <div className="flex gap-2">
+                <Button asChild className="rounded-full">
+                  <Link to="/onboarding/customer" search={{ tenant: slug }}>Join with mobile</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full">
+                  <Link to="/auth/login">Sign in</Link>
+                </Button>
+              </div>
             </div>
           )}
         </div>

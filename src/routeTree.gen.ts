@@ -9,11 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoresIndexRouteImport } from './routes/stores.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as STenantRouteImport } from './routes/s.$tenant'
+import { Route as OnboardingSellerRouteImport } from './routes/onboarding.seller'
+import { Route as OnboardingCustomerRouteImport } from './routes/onboarding.customer'
 import { Route as AuthSignupRouteImport } from './routes/auth.signup'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AdminTenantsRouteImport } from './routes/admin.tenants'
@@ -27,6 +30,7 @@ import { Route as STenantCheckoutRouteImport } from './routes/s.$tenant.checkout
 import { Route as STenantCartRouteImport } from './routes/s.$tenant.cart'
 import { Route as STenantAdminRouteImport } from './routes/s.$tenant.admin'
 import { Route as STenantAccountRouteImport } from './routes/s.$tenant.account'
+import { Route as OnboardingSellerStatusRouteImport } from './routes/onboarding.seller.status'
 import { Route as STenantOrdersIndexRouteImport } from './routes/s.$tenant.orders.index'
 import { Route as STenantAdminIndexRouteImport } from './routes/s.$tenant.admin.index'
 import { Route as STenantPProductIdRouteImport } from './routes/s.$tenant.p.$productId'
@@ -44,6 +48,11 @@ import { Route as STenantAdminProductsNewRouteImport } from './routes/s.$tenant.
 import { Route as STenantAdminProductsIdRouteImport } from './routes/s.$tenant.admin.products.$id'
 import { Route as STenantAdminOrdersIdRouteImport } from './routes/s.$tenant.admin.orders.$id'
 
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -68,6 +77,16 @@ const STenantRoute = STenantRouteImport.update({
   id: '/s/$tenant',
   path: '/s/$tenant',
   getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingSellerRoute = OnboardingSellerRouteImport.update({
+  id: '/seller',
+  path: '/seller',
+  getParentRoute: () => OnboardingRoute,
+} as any)
+const OnboardingCustomerRoute = OnboardingCustomerRouteImport.update({
+  id: '/customer',
+  path: '/customer',
+  getParentRoute: () => OnboardingRoute,
 } as any)
 const AuthSignupRoute = AuthSignupRouteImport.update({
   id: '/auth/signup',
@@ -133,6 +152,11 @@ const STenantAccountRoute = STenantAccountRouteImport.update({
   id: '/account',
   path: '/account',
   getParentRoute: () => STenantRoute,
+} as any)
+const OnboardingSellerStatusRoute = OnboardingSellerStatusRouteImport.update({
+  id: '/status',
+  path: '/status',
+  getParentRoute: () => OnboardingSellerRoute,
 } as any)
 const STenantOrdersIndexRoute = STenantOrdersIndexRouteImport.update({
   id: '/orders/',
@@ -220,15 +244,19 @@ const STenantAdminOrdersIdRoute = STenantAdminOrdersIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/onboarding': typeof OnboardingRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/tenants': typeof AdminTenantsRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/onboarding/customer': typeof OnboardingCustomerRoute
+  '/onboarding/seller': typeof OnboardingSellerRouteWithChildren
   '/s/$tenant': typeof STenantRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/stores/': typeof StoresIndexRoute
+  '/onboarding/seller/status': typeof OnboardingSellerStatusRoute
   '/s/$tenant/account': typeof STenantAccountRoute
   '/s/$tenant/admin': typeof STenantAdminRouteWithChildren
   '/s/$tenant/cart': typeof STenantCartRoute
@@ -255,14 +283,18 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/onboarding': typeof OnboardingRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/tenants': typeof AdminTenantsRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/onboarding/customer': typeof OnboardingCustomerRoute
+  '/onboarding/seller': typeof OnboardingSellerRouteWithChildren
   '/admin': typeof AdminIndexRoute
   '/stores': typeof StoresIndexRoute
+  '/onboarding/seller/status': typeof OnboardingSellerStatusRoute
   '/s/$tenant/account': typeof STenantAccountRoute
   '/s/$tenant/cart': typeof STenantCartRoute
   '/s/$tenant/checkout': typeof STenantCheckoutRoute
@@ -290,15 +322,19 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/onboarding': typeof OnboardingRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/tenants': typeof AdminTenantsRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/onboarding/customer': typeof OnboardingCustomerRoute
+  '/onboarding/seller': typeof OnboardingSellerRouteWithChildren
   '/s/$tenant': typeof STenantRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/stores/': typeof StoresIndexRoute
+  '/onboarding/seller/status': typeof OnboardingSellerStatusRoute
   '/s/$tenant/account': typeof STenantAccountRoute
   '/s/$tenant/admin': typeof STenantAdminRouteWithChildren
   '/s/$tenant/cart': typeof STenantCartRoute
@@ -328,15 +364,19 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/onboarding'
     | '/admin/analytics'
     | '/admin/notifications'
     | '/admin/orders'
     | '/admin/tenants'
     | '/auth/login'
     | '/auth/signup'
+    | '/onboarding/customer'
+    | '/onboarding/seller'
     | '/s/$tenant'
     | '/admin/'
     | '/stores/'
+    | '/onboarding/seller/status'
     | '/s/$tenant/account'
     | '/s/$tenant/admin'
     | '/s/$tenant/cart'
@@ -363,14 +403,18 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/onboarding'
     | '/admin/analytics'
     | '/admin/notifications'
     | '/admin/orders'
     | '/admin/tenants'
     | '/auth/login'
     | '/auth/signup'
+    | '/onboarding/customer'
+    | '/onboarding/seller'
     | '/admin'
     | '/stores'
+    | '/onboarding/seller/status'
     | '/s/$tenant/account'
     | '/s/$tenant/cart'
     | '/s/$tenant/checkout'
@@ -397,15 +441,19 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/onboarding'
     | '/admin/analytics'
     | '/admin/notifications'
     | '/admin/orders'
     | '/admin/tenants'
     | '/auth/login'
     | '/auth/signup'
+    | '/onboarding/customer'
+    | '/onboarding/seller'
     | '/s/$tenant'
     | '/admin/'
     | '/stores/'
+    | '/onboarding/seller/status'
     | '/s/$tenant/account'
     | '/s/$tenant/admin'
     | '/s/$tenant/cart'
@@ -434,6 +482,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  OnboardingRoute: typeof OnboardingRouteWithChildren
   AuthLoginRoute: typeof AuthLoginRoute
   AuthSignupRoute: typeof AuthSignupRoute
   STenantRoute: typeof STenantRouteWithChildren
@@ -442,6 +491,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -476,6 +532,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/s/$tenant'
       preLoaderRoute: typeof STenantRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/onboarding/seller': {
+      id: '/onboarding/seller'
+      path: '/seller'
+      fullPath: '/onboarding/seller'
+      preLoaderRoute: typeof OnboardingSellerRouteImport
+      parentRoute: typeof OnboardingRoute
+    }
+    '/onboarding/customer': {
+      id: '/onboarding/customer'
+      path: '/customer'
+      fullPath: '/onboarding/customer'
+      preLoaderRoute: typeof OnboardingCustomerRouteImport
+      parentRoute: typeof OnboardingRoute
     }
     '/auth/signup': {
       id: '/auth/signup'
@@ -567,6 +637,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/s/$tenant/account'
       preLoaderRoute: typeof STenantAccountRouteImport
       parentRoute: typeof STenantRoute
+    }
+    '/onboarding/seller/status': {
+      id: '/onboarding/seller/status'
+      path: '/status'
+      fullPath: '/onboarding/seller/status'
+      preLoaderRoute: typeof OnboardingSellerStatusRouteImport
+      parentRoute: typeof OnboardingSellerRoute
     }
     '/s/$tenant/orders/': {
       id: '/s/$tenant/orders/'
@@ -701,6 +778,31 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface OnboardingSellerRouteChildren {
+  OnboardingSellerStatusRoute: typeof OnboardingSellerStatusRoute
+}
+
+const OnboardingSellerRouteChildren: OnboardingSellerRouteChildren = {
+  OnboardingSellerStatusRoute: OnboardingSellerStatusRoute,
+}
+
+const OnboardingSellerRouteWithChildren =
+  OnboardingSellerRoute._addFileChildren(OnboardingSellerRouteChildren)
+
+interface OnboardingRouteChildren {
+  OnboardingCustomerRoute: typeof OnboardingCustomerRoute
+  OnboardingSellerRoute: typeof OnboardingSellerRouteWithChildren
+}
+
+const OnboardingRouteChildren: OnboardingRouteChildren = {
+  OnboardingCustomerRoute: OnboardingCustomerRoute,
+  OnboardingSellerRoute: OnboardingSellerRouteWithChildren,
+}
+
+const OnboardingRouteWithChildren = OnboardingRoute._addFileChildren(
+  OnboardingRouteChildren,
+)
+
 interface STenantAdminRouteChildren {
   STenantAdminCategoriesRoute: typeof STenantAdminCategoriesRoute
   STenantAdminCouponsRoute: typeof STenantAdminCouponsRoute
@@ -769,6 +871,7 @@ const STenantRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  OnboardingRoute: OnboardingRouteWithChildren,
   AuthLoginRoute: AuthLoginRoute,
   AuthSignupRoute: AuthSignupRoute,
   STenantRoute: STenantRouteWithChildren,

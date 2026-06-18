@@ -1,5 +1,71 @@
 export type TenantAccent = "emerald" | "orange" | "purple" | "rose";
 
+// ── Onboarding types ───────────────────────────────────────────────────────────
+
+export type CustomerOnboardingStep = 1 | 2 | 3 | 4 | 5;
+export type SellerOnboardingStep   = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+export type TenantOnboardingStatus =
+  | "DRAFT"
+  | "PENDING_VERIFICATION"
+  | "UNDER_REVIEW"
+  | "APPROVED"
+  | "ACTIVE"
+  | "REJECTED"
+  | "PENDING";
+
+export interface SellerOnboardingState {
+  step:       SellerOnboardingStep;
+  phone:      string;
+  tenantSlug: string | null;
+  businessForm: {
+    name:         string;
+    slug:         string;
+    category:     string;
+    businessType: string;
+    description:  string;
+    email:        string;
+    tagline:      string;
+  };
+  addressForm: {
+    line1:          string;
+    line2:          string;
+    city:           string;
+    state:          string;
+    pincode:        string;
+    lat:            string;
+    lng:            string;
+    deliveryRadius: number;
+  };
+  brandingForm: {
+    logoEmoji:      string;
+    bannerGradient: string;
+    accent:         TenantAccent;
+    tagline:        string;
+  };
+  kycForm: {
+    aadhaar:      string;
+    pan:          string;
+    gst:          string;
+    documentUrls: string[];
+    storeImageUrl:string;
+  };
+}
+
+export interface OtpVerifyResult {
+  verified:     boolean;
+  isNewUser:    boolean;
+  accessToken:  string;
+  refreshToken: string;
+  expiresIn:    number;
+  user: {
+    id:         string;
+    phone:      string;
+    roles:      string[];
+    tenantSlug: string | null;
+  };
+}
+
 export interface Tenant {
   slug: string;
   name: string;
@@ -18,6 +84,8 @@ export interface Tenant {
   phone: string;
   address: string;
   featured?: boolean;
+  status?: string; // DRAFT | PENDING_VERIFICATION | UNDER_REVIEW | ACTIVE | REJECTED
+  ownerUserId?: string;
 }
 
 export interface Category {

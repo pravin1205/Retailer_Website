@@ -20,6 +20,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         default_schema: tenant
+        show_sql: true
     packages-to-scan: com.marketly.tenant.entity
     open-in-view: false
 

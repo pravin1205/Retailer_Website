@@ -25,13 +25,34 @@ public class NotificationService {
     private final SimpMessagingTemplate   messagingTemplate;
 
     /**
+     * Dispatch an OTP SMS — intentionally skips DB persistence because:
+     * 1. OTPs are transient and must not be stored in notification history.
+     * 2. The recipient has no userId yet at OTP-send time (pre-registration).
+     *
+     * In production, replace the log statement with a real SMS provider call.
+     */
+    public void dispatchOtp(String phone, String otpCode) {
+        // Production: call SMS provider (Twilio / MSG91 / Kaleyra) here.
+        // Dev: OTP is visible in the notification-service console log.
+        log.info("[OTP-DEV] Code for ...{}: {}", phone.length() > 4 ? phone.substring(phone.length() - 4) : phone, otpCode);
+        log.info("SMS not yet integrated — OTP logged above for development use");
+    }
+
+    /**
      * Central dispatch method.
      * Persists the notification first, then dispatches to channel(s).
+     * recipientId MUST be non-null — use dispatchOtp() for pre-registration OTPs.
      */
     @Transactional
     public void dispatch(UUID tenantId, UUID recipientId, String recipientEmail,
                          String channel, String category, String title, String body,
                          UUID referenceId, String referenceType) {
+
+        // Guard: recipientId is NOT NULL in the DB. Callers must supply a valid UUID.
+        if (recipientId == null) {
+            log.error("dispatch() called with null recipientId for channel={} category={}. Skipping persistence.", channel, category);
+            return;
+        }
 
         Notification notification = Notification.builder()
             .tenantId(tenantId)

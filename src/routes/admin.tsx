@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import React, { useState } from "react";
 import { ShieldCheck, Home } from "lucide-react";
 import { useAuthStore } from "@/stores";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -36,8 +36,23 @@ function SuperAdminLayout() {
 }
 
 function SuperAdminSignInWall() {
-  const loginAs = useAuthStore((s) => s.loginAs);
-  const [email, setEmail] = useState("admin@marketly.in");
+  const login   = useAuthStore((s) => s.login);
+  const loading = useAuthStore((s) => s.loading);
+  const [email,    setEmail]    = useState("admin@marketly.com");
+  const [password, setPassword] = useState("");
+  const [error,    setError]    = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      // No tenantSlug — SUPER_ADMIN token has no tenant scope
+      await login(email, password);
+      toast.success("Signed in to platform admin");
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? "Sign in failed");
+    }
+  };
 
   return (
     <div className="grid min-h-dvh place-items-center px-4 py-10">
@@ -47,30 +62,29 @@ function SuperAdminSignInWall() {
         </div>
         <h1 className="mt-5 text-xl font-semibold tracking-tight">Platform admin</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Monitor every storefront, every order, every tenant on Marketly.
+          Sign in with your admin credentials to access the platform dashboard.
         </p>
-        <form
-          className="mt-5 space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            loginAs(email, "super_admin");
-            toast.success("Signed in as platform admin");
-          }}
-        >
+        {error && (
+          <div className="mt-4 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+        <form className="mt-5 space-y-3" onSubmit={handleSubmit}>
           <div>
             <Label htmlFor="se" className="mb-1.5 block text-[12.5px] font-medium">Email</Label>
-            <Input id="se" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input id="se" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="rounded-xl" />
           </div>
-          <Button type="submit" className="h-11 w-full rounded-full bg-foreground text-sm font-semibold text-background hover:opacity-90">
-            Enter platform admin
+          <div>
+            <Label htmlFor="sp" className="mb-1.5 block text-[12.5px] font-medium">Password</Label>
+            <Input id="sp" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="rounded-xl" />
+          </div>
+          <Button type="submit" disabled={loading} className="h-11 w-full rounded-full bg-foreground text-sm font-semibold text-background hover:opacity-90">
+            {loading ? "Signing in…" : "Sign in to admin"}
           </Button>
         </form>
         <Link to="/" className="mt-5 inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground">
           <Home className="h-3.5 w-3.5" /> Back to marketplace
         </Link>
-        <p className="mt-4 rounded-xl bg-surface-muted px-3 py-2 text-[11px] text-muted-foreground">
-          Demo: any email works. Role is mocked client-side.
-        </p>
       </div>
     </div>
   );

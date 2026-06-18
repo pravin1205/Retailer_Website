@@ -1,5 +1,6 @@
 package com.marketly.common.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -46,6 +47,7 @@ public abstract class AuditableEntity {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    @JsonIgnore
     public boolean isDeleted() {
         return deletedAt != null;
     }

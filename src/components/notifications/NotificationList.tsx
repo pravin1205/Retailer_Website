@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { memo } from "react";
-import type { Notification } from "@/stores/notifications";
+import type { Notification } from "@/stores/notification";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - +new Date(iso);

@@ -1,5 +1,7 @@
 package com.marketly.tenant.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.marketly.common.entity.AuditableEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -15,6 +17,7 @@ import java.util.UUID;
     schema = "tenant",
     uniqueConstraints = @UniqueConstraint(name = "uq_tenants_slug", columnNames = "slug")
 )
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -39,7 +42,7 @@ public class Tenant extends AuditableEntity {
 
     @Column(name = "status", nullable = false, length = 30)
     @Builder.Default
-    private String status = "PENDING";
+    private String status = "DRAFT";
 
     @Column(name = "owner_user_id", nullable = false)
     private UUID ownerUserId;
@@ -60,11 +63,17 @@ public class Tenant extends AuditableEntity {
     @Column(name = "accent_color", length = 30)
     private String accentColor;
 
+    @Column(name = "onboarding_step", length = 50)
+    @Builder.Default
+    private String onboardingStep = "MOBILE";
+
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
+    @JsonIgnore
     private List<TenantDomain> domains = new ArrayList<>();
 
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
+    @JsonIgnore
     private List<TenantSetting> settings = new ArrayList<>();
 }
