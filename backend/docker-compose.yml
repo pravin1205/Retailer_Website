@@ -158,6 +158,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_SERVER_URL: http://identity-service:8081/eureka
       JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-this-in-production-min-256-bits-!!}
+      TENANT_SERVICE_URL: http://tenant-service:8082
       SPRING_PROFILES_ACTIVE: docker
     depends_on:
       postgres:
@@ -413,6 +414,8 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_SERVER_URL: http://identity-service:8081/eureka
       JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-this-in-production-min-256-bits-!!}
+      PLATFORM_DOMAIN: ${PLATFORM_DOMAIN:-marketly.com}
+      TENANT_SERVICE_URL: http://tenant-service:8082
       SPRING_PROFILES_ACTIVE: docker
     depends_on:
       identity-service:
@@ -425,6 +428,32 @@ services:
       timeout: 10s
       retries: 10
       start_period: 60s
+    networks:
+      - marketly-net
+
+  # ── Frontend (TanStack Start / Node.js SSR) ───────────────────────────────
+  frontend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: marketly/frontend:latest
+    container_name: marketly-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # The SSR server forwards /api/v1/* to the api-gateway inside the Docker network
+      API_GATEWAY_URL: http://api-gateway:8080
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 | grep -q marketly || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     networks:
       - marketly-net
 
