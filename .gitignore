@@ -7,6 +7,22 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Maven build output
+backend/**/target/
+backend/target/
+
+# Bun (use npm instead)
+bun.lock
+bunfig.toml
+
+# IntelliJ
+.idea/
+
+# Temp / scratch files
+dev_out.txt
+done
+echo
+
 node_modules
 dist
 dist-ssr

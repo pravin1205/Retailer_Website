@@ -6,44 +6,57 @@ import com.marketly.identity.dto.LoginRequest;
 import com.marketly.identity.dto.LoginResponse;
 import com.marketly.identity.dto.RegisterRequest;
 import com.marketly.identity.entity.RefreshToken;
-import com.marketly.identity.entity.Role;
 import com.marketly.identity.entity.User;
-import com.marketly.identity.entity.UserTenantRole;
 import com.marketly.identity.event.UserEventProducer;
 import com.marketly.identity.repository.RefreshTokenRepository;
-import com.marketly.identity.repository.RoleRepository;
 import com.marketly.identity.repository.UserRepository;
-import com.marketly.identity.repository.UserTenantRoleRepository;
 import com.marketly.identity.security.JwtProperties;
 import com.marketly.identity.security.JwtService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class AuthService {
 
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final UserTenantRoleRepository userTenantRoleRepository;
+    private final UserRepository         userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
-    private final JwtProperties jwtProperties;
-    private final UserEventProducer userEventProducer;
+    private final PasswordEncoder        passwordEncoder;
+    private final JwtService             jwtService;
+    private final JwtProperties          jwtProperties;
+    private final UserEventProducer      userEventProducer;
+    private final RestClient             tenantRestClient;
+
+    public AuthService(
+            UserRepository userRepository,
+            RefreshTokenRepository refreshTokenRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService,
+            JwtProperties jwtProperties,
+            UserEventProducer userEventProducer,
+            @Value("${app.tenant-service-url:http://localhost:8082}") String tenantServiceUrl) {
+        this.userRepository       = userRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.passwordEncoder      = passwordEncoder;
+        this.jwtService           = jwtService;
+        this.jwtProperties        = jwtProperties;
+        this.userEventProducer    = userEventProducer;
+        this.tenantRestClient     = RestClient.builder().baseUrl(tenantServiceUrl).build();
+    }
 
     @Transactional
     public User register(RegisterRequest request) {
@@ -62,11 +75,10 @@ public class AuthService {
 
         user = userRepository.save(user);
 
-        // Assign default CUSTOMER role at the tenant level if tenantSlug provided
-        Role customerRole = roleRepository.findByName("CUSTOMER")
-            .orElseThrow(() -> new IllegalStateException("CUSTOMER role not seeded"));
-
-        // For registration without tenant, we still save — tenant role assigned separately
+        // Role assignment happens via OtpService (OTP flow) or TenantEventConsumer (Kafka).
+        // Email+password registration does not assign a tenant-scoped role here
+        // because the tenantSlug → tenantId resolution and role row insert requires
+        // an async call to tenant-service, which is handled separately.
         log.info("User registered: {}", user.getEmail());
 
         userEventProducer.publishUserRegistered(user, request.getTenantSlug());
@@ -87,11 +99,9 @@ public class AuthService {
             throw new UnauthorizedException("Invalid email or password.");
         }
 
-        // Resolve tenant ID if tenantSlug provided
-        UUID tenantId = null;
+        // Resolve tenant ID from tenantSlug — scopes the JWT to a specific store
         String tenantSlug = request.getTenantSlug();
-        // tenantId resolution would normally call tenant-service via Feign.
-        // For Phase 1, we keep it nullable and the JWT will not have tenant_id if not provided.
+        UUID tenantId = resolveTenantId(tenantSlug);
 
         // Generate tokens
         String accessToken  = jwtService.generateAccessToken(user, tenantId);
@@ -191,6 +201,31 @@ public class AuthService {
 
         // Revoke all refresh tokens on password change
         refreshTokenRepository.revokeAllForUser(userId, Instant.now());
+    }
+
+    /**
+     * Calls tenant-service to resolve a slug to a tenant UUID.
+     * Returns null if slug is blank, not found, or service is unavailable.
+     */
+    @SuppressWarnings("unchecked")
+    private UUID resolveTenantId(String slug) {
+        if (slug == null || slug.isBlank()) return null;
+        try {
+            Map<String, Object> response = tenantRestClient.get()
+                .uri("/api/v1/tenants/{slug}", slug)
+                .retrieve()
+                .body(Map.class);
+            if (response == null) return null;
+            Object data = response.get("data");
+            if (data instanceof Map<?, ?> dataMap) {
+                Object id = dataMap.get("id");
+                if (id != null) return UUID.fromString(id.toString());
+            }
+            return null;
+        } catch (RestClientException e) {
+            log.warn("Could not resolve tenantId for slug='{}': {}", slug, e.getMessage());
+            return null;
+        }
     }
 
     private String sha256(String input) {

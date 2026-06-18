@@ -118,7 +118,12 @@ interface AuthState {
   login: (email: string, password: string, tenantSlug?: string) => Promise<void>;
   /** Register new account. */
   register: (name: string, email: string, password: string, tenantSlug?: string) => Promise<void>;
-  /** Legacy helper used by admin demo flows — sets user directly without API. */
+  /**
+   * Hydrate auth state from a completed OTP verification response.
+   * Replaces the old fake loginAs() for OTP-based flows.
+   */
+  loginFromOtp: (result: import("@/lib/types").OtpVerifyResult, tenantSlug?: string) => void;
+  /** Legacy helper kept for admin demo sign-in wall only. */
   loginAs: (email: string, role: "customer" | "owner" | "super_admin") => void;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -191,8 +196,32 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      loginFromOtp: (result, tenantSlug) => {
+        const roles: string[] = result.user?.roles ?? [];
+        const role: AuthUser["role"] =
+          roles.includes("SUPER_ADMIN")   ? "super_admin" :
+          roles.includes("TENANT_OWNER")  ? "owner"       :
+          roles.includes("STORE_MANAGER") ? "owner"       : "customer";
+
+        tokenStorage.setAccess(result.accessToken);
+        tokenStorage.setRefresh(result.refreshToken);
+
+        set({
+          user: {
+            id:         result.user?.id ?? "",
+            name:       result.user?.phone ?? "User",
+            email:      result.user?.phone + "@otp.marketly.internal",
+            phone:      result.user?.phone,
+            role,
+            tenantSlug: tenantSlug ?? result.user?.tenantSlug ?? undefined,
+          },
+          accessToken:  result.accessToken,
+          refreshToken: result.refreshToken,
+        });
+      },
+
       loginAs: (email, role) => {
-        // Demo / admin bypass — no real token
+        // Demo / admin sign-in wall bypass — no real token
         set({
           user: { id: "demo", name: email.split("@")[0] || "Guest", email, role },
           accessToken: null, refreshToken: null,
@@ -217,6 +246,73 @@ export const useAuthStore = create<AuthState>()(
         accessToken:  s.accessToken,
         refreshToken: s.refreshToken,
       }),
+    },
+  ),
+);
+
+// ── Onboarding store ──────────────────────────────────────────────────────────
+
+import type { SellerOnboardingState, TenantAccent } from "@/lib/types";
+
+const DEFAULT_SELLER_STATE: SellerOnboardingState = {
+  step:       1,
+  phone:      "",
+  tenantSlug: null,
+  businessForm: { name: "", slug: "", category: "", businessType: "", description: "", email: "", tagline: "" },
+  addressForm:  { line1: "", line2: "", city: "", state: "", pincode: "", lat: "", lng: "", deliveryRadius: 5 },
+  brandingForm: { logoEmoji: "🏪", bannerGradient: "linear-gradient(135deg, oklch(0.95 0.04 158), oklch(0.88 0.08 158))", accent: "emerald", tagline: "" },
+  kycForm:      { aadhaar: "", pan: "", gst: "", documentUrls: [], storeImageUrl: "" },
+};
+
+interface OnboardingStoreState {
+  seller: SellerOnboardingState;
+  customerStep: number;
+  customerPhone: string;
+  customerTenantSlug: string | null;
+  updateSeller: (updates: Partial<SellerOnboardingState>) => void;
+  updateSellerBusiness: (updates: Partial<SellerOnboardingState["businessForm"]>) => void;
+  updateSellerAddress:  (updates: Partial<SellerOnboardingState["addressForm"]>)  => void;
+  updateSellerBranding: (updates: Partial<SellerOnboardingState["brandingForm"]>) => void;
+  updateSellerKyc:      (updates: Partial<SellerOnboardingState["kycForm"]>)      => void;
+  resetSeller: () => void;
+  setCustomerStep:      (step: number) => void;
+  setCustomerPhone:     (phone: string) => void;
+  setCustomerTenantSlug:(slug: string | null) => void;
+}
+
+export const useOnboardingStore = create<OnboardingStoreState>()(
+  persist(
+    (set, get) => ({
+      seller:             DEFAULT_SELLER_STATE,
+      customerStep:       1,
+      customerPhone:      "",
+      customerTenantSlug: null,
+
+      updateSeller: (updates) =>
+        set((s) => ({ seller: { ...s.seller, ...updates } })),
+
+      updateSellerBusiness: (updates) =>
+        set((s) => ({ seller: { ...s.seller, businessForm: { ...s.seller.businessForm, ...updates } } })),
+
+      updateSellerAddress: (updates) =>
+        set((s) => ({ seller: { ...s.seller, addressForm: { ...s.seller.addressForm, ...updates } } })),
+
+      updateSellerBranding: (updates) =>
+        set((s) => ({ seller: { ...s.seller, brandingForm: { ...s.seller.brandingForm, ...updates } } })),
+
+      updateSellerKyc: (updates) =>
+        set((s) => ({ seller: { ...s.seller, kycForm: { ...s.seller.kycForm, ...updates } } })),
+
+      resetSeller: () => set({ seller: DEFAULT_SELLER_STATE }),
+
+      setCustomerStep:       (step)  => set({ customerStep: step }),
+      setCustomerPhone:      (phone) => set({ customerPhone: phone }),
+      setCustomerTenantSlug: (slug)  => set({ customerTenantSlug: slug }),
+    }),
+    {
+      name: "marketly-onboarding",
+      // Only persist seller draft — customer steps are ephemeral (OTP expires in 10 min)
+      partialize: (s) => ({ seller: s.seller }),
     },
   ),
 );

@@ -16,11 +16,20 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
 
     boolean existsByTenantIdAndUserIdAndDeletedAtIsNull(UUID tenantId, UUID userId);
 
+    // Used when no search term — avoids null binding that confuses PostgreSQL type inference
+    @Query("SELECT c FROM Customer c WHERE c.tenantId = :tenantId AND c.deletedAt IS NULL")
+    Page<Customer> findByTenantId(
+        @Param("tenantId") UUID tenantId,
+        Pageable pageable
+    );
+
+    // Used when a search term is present — all parameters are non-null, no type ambiguity
     @Query("SELECT c FROM Customer c WHERE c.tenantId = :tenantId AND c.deletedAt IS NULL " +
-           "AND (:search IS NULL OR LOWER(c.firstName) LIKE LOWER(CONCAT('%',:search,'%')) " +
+           "AND (LOWER(c.firstName) LIKE LOWER(CONCAT('%',:search,'%')) " +
            "  OR LOWER(c.lastName)  LIKE LOWER(CONCAT('%',:search,'%')) " +
-           "  OR LOWER(c.email)     LIKE LOWER(CONCAT('%',:search,'%')))")
-    Page<Customer> findByTenantIdFiltered(
+           "  OR LOWER(c.email)     LIKE LOWER(CONCAT('%',:search,'%')) " +
+           "  OR c.phone            LIKE CONCAT('%',:search,'%'))")
+    Page<Customer> findByTenantIdAndSearch(
         @Param("tenantId") UUID tenantId,
         @Param("search") String search,
         Pageable pageable

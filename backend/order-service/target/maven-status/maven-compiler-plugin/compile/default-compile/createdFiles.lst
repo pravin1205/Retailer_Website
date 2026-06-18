@@ -23,9 +23,11 @@ com\marketly\order\controller\CartController.class
 com\marketly\order\service\OrderService.class
 com\marketly\order\entity\CartItem$CartItemBuilder.class
 com\marketly\order\service\CheckoutService.class
+com\marketly\order\config\WebMvcConfig.class
 com\marketly\order\entity\Order.class
 com\marketly\order\client\ProductServiceClient.class
 com\marketly\order\entity\Coupon.class
 com\marketly\order\event\OrderEventProducer.class
 com\marketly\order\service\CartService.class
+com\marketly\order\config\WebMvcConfig$TenantFilterInterceptor.class
 com\marketly\order\client\ProductServiceClient$ProductResponse.class

@@ -53,6 +53,10 @@ public class JwtService {
             .expiration(Date.from(expiry))
             .signWith(signingKey());
 
+        if (user.getPhone() != null && !user.getPhone().isBlank()) {
+            builder.claim("phone", user.getPhone());
+        }
+
         if (tenantId != null) {
             builder.claim("tenant_id", tenantId.toString());
         }

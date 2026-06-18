@@ -15,7 +15,7 @@ import { useMergedTenant } from "@/stores/admin";
 import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { useTenantNotifications, useNotifStore } from "@/stores/notifications";
+import { useTenantNotifications, useNotifStore } from "@/stores/notification";
 
 export function AdminTopbar() {
   const { tenant: slug } = useParams({ strict: false }) as { tenant: string };

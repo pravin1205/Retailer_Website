@@ -40,14 +40,18 @@ public class CorrelationIdFilter implements GlobalFilter, Ordered {
 
         final String finalCorrelationId = correlationId;
 
-        ServerHttpRequest mutated = exchange.getRequest().mutate()
+        // Inject correlation ID into the forwarded downstream request
+        ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
             .header(CORRELATION_HEADER, finalCorrelationId)
             .build();
 
-        return chain.filter(exchange.mutate().request(mutated).build())
-            .doFinally(sig ->
-                exchange.getResponse().getHeaders()
-                    .add(CORRELATION_HEADER, finalCorrelationId));
+        // Add correlation ID to the response headers BEFORE the chain runs.
+        // Response headers must be set before the first write; doFinally fires
+        // after the response is committed which causes ReadOnlyHttpHeaders to throw.
+        exchange.getResponse().getHeaders()
+            .add(CORRELATION_HEADER, finalCorrelationId);
+
+        return chain.filter(exchange.mutate().request(mutatedRequest).build());
     }
 
     @Override

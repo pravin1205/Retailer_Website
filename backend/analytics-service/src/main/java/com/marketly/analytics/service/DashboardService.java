@@ -25,7 +25,7 @@ public class DashboardService {
      * Builds the full dashboard for a tenant.
      * Cached for 5 minutes — acceptable lag for analytics.
      */
-    @Cacheable(value = "analytics-dashboard", key = "#tenantId.toString()")
+    @Cacheable(value = "analytics-dashboard", key = "#a0.toString()")
     @Transactional(readOnly = true)
     public DashboardResponse getDashboard(UUID tenantId) {
         LocalDate today  = LocalDate.now();

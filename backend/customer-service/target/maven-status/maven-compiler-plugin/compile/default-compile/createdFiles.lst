@@ -1,6 +1,7 @@
 com\marketly\customer\CustomerServiceApplication.class
 com\marketly\customer\event\OrderCompletedConsumer.class
 com\marketly\customer\dto\CustomerRequest.class
+com\marketly\customer\config\WebMvcConfig$TenantFilterInterceptor.class
 com\marketly\customer\entity\Customer.class
 com\marketly\customer\controller\CustomerController.class
 com\marketly\customer\dto\AddressRequest.class
@@ -11,4 +12,5 @@ com\marketly\customer\event\UserRegisteredConsumer.class
 com\marketly\customer\entity\Address$AddressBuilder.class
 com\marketly\customer\exception\GlobalExceptionHandler.class
 com\marketly\customer\entity\Address.class
+com\marketly\customer\config\WebMvcConfig.class
 com\marketly\customer\repository\AddressRepository.class

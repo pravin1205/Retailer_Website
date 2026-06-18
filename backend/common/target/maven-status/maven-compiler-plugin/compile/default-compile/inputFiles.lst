@@ -10,4 +10,5 @@ d:\Retailer_Website\backend\common\src\main\java\com\marketly\common\exception\R
 d:\Retailer_Website\backend\common\src\main\java\com\marketly\common\exception\TenantNotFoundException.java
 d:\Retailer_Website\backend\common\src\main\java\com\marketly\common\exception\UnauthorizedException.java
 d:\Retailer_Website\backend\common\src\main\java\com\marketly\common\security\MdcRequestFilter.java
+d:\Retailer_Website\backend\common\src\main\java\com\marketly\common\tenant\PlatformConstants.java
 d:\Retailer_Website\backend\common\src\main\java\com\marketly\common\tenant\TenantContext.java

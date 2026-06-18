@@ -13,7 +13,7 @@
  * and useSuspenseQuery calls continue to work without modification.
  */
 import { http, withTenant } from "./http-client";
-import type { Product, Tenant, Category, Review, Coupon, Order } from "../types";
+import type { Product, Tenant, Category, Review, Coupon, Order, OtpVerifyResult } from "../types";
 
 // ── Tenant resolution helper ───────────────────────────────────────────────────
 // The backend identifies tenants by UUID (X-Tenant-ID header), but our routes
@@ -21,9 +21,16 @@ import type { Product, Tenant, Category, Review, Coupon, Order } from "../types"
 const tenantIdCache = new Map<string, string>();
 
 async function resolveTenantId(slug: string): Promise<string> {
-  if (tenantIdCache.has(slug)) return tenantIdCache.get(slug)!;
-  const tenant = await http.get<{ id: string }>(`/tenants/${slug}`);
-  const id = (tenant as unknown as { id: string }).id ?? slug;
+  // Validate cached entry — discard if it's not a real UUID
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const cached = tenantIdCache.get(slug);
+  if (cached && UUID_RE.test(cached)) return cached;
+
+  const raw = (await http.get(`/tenants/${slug}`)) as unknown as Record<string, unknown>;
+  const id = String(raw.id ?? "");
+  if (!UUID_RE.test(id)) {
+    throw new Error(`Could not resolve tenant ID for slug "${slug}" — got: "${id}"`);
+  }
   tenantIdCache.set(slug, id);
   return id;
 }
@@ -52,6 +59,8 @@ function adaptTenant(raw: Record<string, unknown>): Tenant {
     phone:           String(settings.phone ?? raw.phone ?? ""),
     address:         String(settings.address ?? raw.address ?? ""),
     featured:        Boolean(raw.featured),
+    status:          String(raw.status ?? ""),
+    ownerUserId:     raw.ownerUserId ? String(raw.ownerUserId) : undefined,
   };
 }
 
@@ -110,15 +119,30 @@ export const api = {
     }
   },
 
-  async getTenant(slug: string): Promise<Tenant | undefined> {
+  async getTenant(slug: string): Promise<Tenant> {
     try {
       const raw = (await http.get(`/tenants/${slug}`)) as unknown as Record<string, unknown>;
+      if (!raw || !raw.slug) {
+        throw new Error(`Tenant "${slug}" not found`);
+      }
       const tenant = adaptTenant(raw);
-      tenantIdCache.set(slug, String(raw.id ?? slug));
+      // Cache the UUID so product/category calls can use it without an extra round-trip
+      const id = String(raw.id ?? "");
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+        tenantIdCache.set(slug, id);
+      }
       return tenant;
-    } catch {
-      const { tenants } = await import("../mock/tenants");
-      return tenants.find((t) => t.slug === slug);
+    } catch (backendErr) {
+      // Fall back to mock data only for slugs that exist in the mock dataset
+      try {
+        const { tenants } = await import("../mock/tenants");
+        const found = tenants.find((t) => t.slug === slug);
+        if (found) return found;
+      } catch {
+        // ignore mock import error
+      }
+      // Re-throw so useSuspenseQuery surfaces a real error instead of undefined
+      throw backendErr;
     }
   },
 
@@ -267,6 +291,194 @@ export const api = {
     return adaptOrder(raw as unknown as Record<string, unknown>, tenantSlug);
   },
 
+  // ── OTP Authentication ─────────────────────────────────────────────────────
+
+  async sendOtp(phone: string): Promise<{ message: string; expiresInSeconds: number }> {
+    const res = await http.post<{ message: string; expiresInSeconds: number }>(
+      "/auth/otp/send",
+      { phone },
+    );
+    return res as unknown as { message: string; expiresInSeconds: number };
+  },
+
+  async verifyOtp(
+    phone: string,
+    otp: string,
+    opts?: { tenantSlug?: string; role?: string },
+  ): Promise<OtpVerifyResult> {
+    const res = await http.post<OtpVerifyResult>("/auth/otp/verify", {
+      phone,
+      otp,
+      tenantSlug: opts?.tenantSlug,
+      role:       opts?.role,
+    });
+    return res as unknown as OtpVerifyResult;
+  },
+
+  // ── Customer Onboarding ────────────────────────────────────────────────────
+
+  async updateCustomerProfile(
+    tenantSlug: string,
+    payload: {
+      firstName:   string;
+      lastName:    string;
+      email:       string;
+      dateOfBirth?: string;
+    },
+  ) {
+    // Always resolve slug → UUID; backend requires UUID in X-Tenant-ID
+    const tenantId = await resolveTenantId(tenantSlug);
+    return http.patch("/customers/me", payload, withTenant(tenantId));
+  },
+
+  async addCustomerAddress(
+    tenantSlug: string,
+    payload: {
+      label:     string;
+      line1:     string;
+      line2?:    string;
+      city:      string;
+      state:     string;
+      pincode:   string;
+      isDefault: boolean;
+    },
+  ) {
+    // Always resolve slug → UUID; backend requires UUID in X-Tenant-ID
+    const tenantId = await resolveTenantId(tenantSlug);
+    return http.post("/customers/me/addresses", payload, withTenant(tenantId));
+  },
+
+  // ── Seller Onboarding ──────────────────────────────────────────────────────
+
+  async checkSlugAvailability(slug: string): Promise<boolean> {
+    try {
+      await http.get(`/tenants/${slug}`);
+      return false; // slug taken
+    } catch {
+      return true; // slug available
+    }
+  },
+
+  async createSellerTenant(payload: {
+    slug:        string;
+    name:        string;
+    tagline:     string;
+    description: string;
+    category:    string;
+    ownerEmail:  string;
+  }) {
+    return http.post("/tenants", payload);
+  },
+
+  async saveSellerAddress(slug: string, settings: Record<string, string>) {
+    return http.patch(`/tenants/${slug}/settings`, settings);
+  },
+
+  async saveSellerBranding(
+    slug:    string,
+    updates: { accentColor?: string; logoUrl?: string; bannerUrl?: string },
+    settings: Record<string, string>,
+  ) {
+    await http.put(`/tenants/${slug}`, updates);
+    if (Object.keys(settings).length > 0) {
+      await http.patch(`/tenants/${slug}/settings`, settings);
+    }
+  },
+
+  async submitSellerKyc(
+    slug:    string,
+    payload: {
+      aadhaarNumber: string;
+      panNumber:     string;
+      gstNumber?:    string;
+      documentUrls:  string[];
+      storeImageUrl: string;
+    },
+  ) {
+    return http.post(`/tenants/${slug}/kyc`, payload);
+  },
+
+  async getSellerStatus(slug: string): Promise<{ status: string; onboardingStep: string }> {
+    const raw = await http.get(`/tenants/${slug}`) as unknown as Record<string, unknown>;
+    return {
+      status:         String(raw.status ?? "PENDING"),
+      onboardingStep: String(raw.onboardingStep ?? ""),
+    };
+  },
+
+  async getTenantDetail(slug: string): Promise<Record<string, unknown>> {
+    const res = await http.get(`/tenants/${slug}/detail`);
+    return res as unknown as Record<string, unknown>;
+  },
+
+  async approveTenant(slug: string, action: "APPROVE" | "REJECT", reviewNotes?: string) {
+    return http.patch(`/tenants/${slug}/approve`, { action, reviewNotes });
+  },
+
+  async markTenantUnderReview(slug: string) {
+    return http.patch(`/tenants/${slug}/review`, {});
+  },
+
+  // ── Customers (store-owner view) ───────────────────────────────────────────
+
+  async listCustomers(
+    tenantSlug: string,
+    opts?: { search?: string; page?: number; size?: number },
+  ): Promise<{
+    items: Array<{
+      id: string;
+      userId: string;
+      firstName: string | null;
+      lastName:  string | null;
+      phone:     string | null;
+      email:     string | null;
+      loyaltyPoints: number;
+      tier:      string;
+      totalOrders: number;
+      totalSpent: number;
+      createdAt: string;
+    }>;
+    totalElements: number;
+    totalPages: number;
+    page: number;
+    size: number;
+  }> {
+    const tenantId = await resolveTenantId(tenantSlug);
+    const params = new URLSearchParams();
+    if (opts?.search) params.set("search", opts.search);
+    params.set("page", String(opts?.page ?? 1));
+    params.set("size", String(opts?.size ?? 50));
+
+    const res = await http.get(
+      `/customers?${params}`,
+      withTenant(tenantId),
+    ) as unknown as Record<string, unknown>;
+
+    // unwrap PageResponse envelope: { data: [...], totalElements, ... }
+    const items = (res as unknown as { data: unknown[] }).data
+      ?? (Array.isArray(res) ? res : []);
+
+    return {
+      items: (items as Record<string, unknown>[]).map((c) => ({
+        id:            String(c.id ?? ""),
+        userId:        String(c.userId ?? ""),
+        firstName:     c.firstName ? String(c.firstName) : null,
+        lastName:      c.lastName  ? String(c.lastName)  : null,
+        phone:         c.phone     ? String(c.phone)     : null,
+        email:         c.email     ? String(c.email)     : null,
+        loyaltyPoints: Number(c.loyaltyPoints ?? 0),
+        tier:          String(c.tier ?? "BRONZE"),
+        totalOrders:   Number(c.totalOrders ?? 0),
+        totalSpent:    Number(c.totalSpent ?? 0),
+        createdAt:     String(c.createdAt ?? ""),
+      })),
+      totalElements: Number((res as Record<string, unknown>).totalElements ?? items.length),
+      totalPages:    Number((res as Record<string, unknown>).totalPages ?? 1),
+      page:          Number((res as Record<string, unknown>).page ?? 1),
+      size:          Number((res as Record<string, unknown>).size ?? 50),
+    };
+  },
+
   // ── Cart (server-side cart sync) ───────────────────────────────────────────
 
   async addToCart(tenantSlug: string, productId: string, variantId?: string, quantity = 1) {
@@ -345,7 +557,7 @@ export const qk = {
   products:    (slug: string, opts?: object) => ["products", slug, opts ?? {}] as const,
   product:     (id: string)               => ["product", id] as const,
   reviews:     (productId: string)        => ["reviews", productId] as const,
-  coupons:     ["coupons"] as const,
+  coupons:     (slug: string)             => ["coupons", slug] as const,
   autocomplete:(slug: string, q: string)  => ["autocomplete", slug, q] as const,
   orders:      (slug: string)             => ["orders", slug] as const,
   order:       (id: string, slug: string) => ["order", id, slug] as const,

@@ -171,12 +171,12 @@ function HomePage() {
                 Bring your inventory, branding and customers. We handle the storefront, search, checkout and logistics —
                 so you can focus on what you sell best.
               </p>
-              <a
-                href="#"
+              <Link
+                to="/onboarding/seller"
                 className="mt-6 inline-flex items-center gap-2 rounded-full border border-border bg-background px-5 py-2.5 text-sm font-semibold hover:bg-surface"
               >
                 Become a partner <ArrowRight className="h-4 w-4" />
-              </a>
+              </Link>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {["Inventory & catalog", "Live orders", "Loyalty & offers", "Sales analytics"].map((f, i) => (

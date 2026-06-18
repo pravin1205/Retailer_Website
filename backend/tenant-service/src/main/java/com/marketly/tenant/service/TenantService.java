@@ -15,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +44,9 @@ public class TenantService {
             .category(request.getCategory())
             .ownerUserId(requestingUserId)
             .subscriptionPlan(request.getSubscriptionPlan() != null ? request.getSubscriptionPlan() : "FREE")
-            .status("PENDING")
+            // DRAFT = seller created store but has not yet submitted KYC
+            // Status flow: DRAFT → PENDING_VERIFICATION → UNDER_REVIEW → ACTIVE/REJECTED
+            .status("DRAFT")
             .accentColor(request.getAccentColor())
             .logoUrl(request.getLogoUrl())
             .build();
@@ -65,23 +66,33 @@ public class TenantService {
         return tenant;
     }
 
-    @Cacheable(value = "tenant-config", key = "#slug")
+    @Cacheable(value = "tenant-config", key = "#a0")
     @Transactional(readOnly = true)
     public Tenant getBySlug(String slug) {
         return tenantRepository.findBySlugAndDeletedAtIsNull(slug)
             .orElseThrow(() -> new ResourceNotFoundException("Tenant", slug));
     }
 
+    /** Loads tenant AND eagerly initialises settings — used by admin detail view, not cached. */
+    @Transactional(readOnly = true)
+    public Tenant getBySlugWithSettings(String slug) {
+        Tenant tenant = tenantRepository.findBySlugAndDeletedAtIsNull(slug)
+            .orElseThrow(() -> new ResourceNotFoundException("Tenant", slug));
+        // Force-initialise the lazy collections inside the transaction
+        tenant.getSettings().size();
+        tenant.getDomains().size();
+        return tenant;
+    }
+
     @Transactional(readOnly = true)
     public PageResponse<Tenant> listTenants(String search, String status,
                                             String category, int page, int size) {
-        PageRequest pageable = PageRequest.of(
-            page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        PageRequest pageable = PageRequest.of(page - 1, size);
         Page<Tenant> result = tenantRepository.findAllFiltered(search, status, category, pageable);
         return PageResponse.of(result);
     }
 
-    @CacheEvict(value = "tenant-config", key = "#slug")
+    @CacheEvict(value = "tenant-config", key = "#a0")
     @Transactional
     public Tenant updateTenant(String slug, Map<String, Object> updates, UUID requestingUserId) {
         Tenant tenant = tenantRepository.findBySlugAndDeletedAtIsNull(slug)
@@ -97,7 +108,7 @@ public class TenantService {
         return tenantRepository.save(tenant);
     }
 
-    @CacheEvict(value = "tenant-config", key = "#slug")
+    @CacheEvict(value = "tenant-config", key = "#a0")
     @Transactional
     public Tenant updateStatus(String slug, String status) {
         Tenant tenant = tenantRepository.findBySlugAndDeletedAtIsNull(slug)
@@ -110,7 +121,7 @@ public class TenantService {
         return saved;
     }
 
-    @CacheEvict(value = "tenant-config", key = "#slug")
+    @CacheEvict(value = "tenant-config", key = "#a0")
     @Transactional
     public void updateSettings(String slug, Map<String, String> settings) {
         Tenant tenant = tenantRepository.findBySlugAndDeletedAtIsNull(slug)

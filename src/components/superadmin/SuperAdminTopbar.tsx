@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/stores";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { usePlatformNotifications, useNotifStore } from "@/stores/notifications";
+import { usePlatformNotifications, useNotifStore } from "@/stores/notification";
 
 export function SuperAdminTopbar() {
   const navigate = useNavigate();

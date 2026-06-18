@@ -11,8 +11,10 @@ import java.util.List;
 @Entity
 @Table(
     name = "users",
-    schema = "identity",
-    uniqueConstraints = @UniqueConstraint(name = "uq_users_email", columnNames = "email")
+    schema = "identity"
+    // NOTE: email uniqueness is enforced by a partial index (V7 migration)
+    // rather than a standard constraint, so we do not declare @UniqueConstraint here.
+    // The partial index: UNIQUE (email) WHERE email IS NOT NULL AND deleted_at IS NULL
 )
 @Getter
 @Setter
@@ -21,7 +23,7 @@ import java.util.List;
 @Builder
 public class User extends AuditableEntity {
 
-    @Column(name = "email", nullable = false, length = 320)
+    @Column(name = "email", nullable = true, length = 320)
     private String email;
 
     @Column(name = "phone", length = 20)

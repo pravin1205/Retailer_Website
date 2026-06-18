@@ -15,8 +15,9 @@ import java.util.Map;
 @Slf4j
 public class UserEventProducer {
 
-    private static final String TOPIC_USER_REGISTERED = "identity.user.registered";
-    private static final String TOPIC_PASSWORD_CHANGED = "identity.user.password-changed";
+    private static final String TOPIC_USER_REGISTERED  = "identity.user.registered";
+    private static final String TOPIC_PASSWORD_CHANGED  = "identity.user.password-changed";
+    private static final String TOPIC_OTP_REQUESTED     = "identity.user.otp-requested";
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -26,10 +27,14 @@ public class UserEventProducer {
         payload.put("eventVersion", "1.0");
         payload.put("occurredAt", Instant.now().toString());
         payload.put("producedBy", "identity-service");
+        // tenantSlug at root level so consumers (customer-service) can resolve tenantId
+        payload.put("tenantSlug", tenantSlug != null ? tenantSlug : "");
         payload.put("payload", Map.of(
-            "userId", user.getId().toString(),
-            "email", user.getEmail(),
-            "phone", user.getPhone() != null ? user.getPhone() : "",
+            "userId",     user.getId().toString(),
+            "email",      user.getEmail(),
+            "phone",      user.getPhone() != null ? user.getPhone() : "",
+            "firstName",  "",   // populated during profile-completion step
+            "lastName",   "",
             "tenantSlug", tenantSlug != null ? tenantSlug : ""
         ));
 
@@ -40,6 +45,29 @@ public class UserEventProducer {
                               user.getId(), ex.getMessage());
                 } else {
                     log.debug("UserRegisteredEvent published for user {}", user.getId());
+                }
+            });
+    }
+
+    public void publishOtpRequested(String phone, String otpCode) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("eventType", TOPIC_OTP_REQUESTED);
+        payload.put("eventVersion", "1.0");
+        payload.put("occurredAt", Instant.now().toString());
+        payload.put("producedBy", "identity-service");
+        payload.put("payload", Map.of(
+            "phone",     phone,
+            "otpCode",   otpCode,
+            "channel",   "SMS",
+            "expiresAt", Instant.now().plusSeconds(600).toString()
+        ));
+
+        kafkaTemplate.send(TOPIC_OTP_REQUESTED, phone, payload)
+            .whenComplete((result, ex) -> {
+                if (ex != null) {
+                    log.error("Failed to publish OtpRequestedEvent for phone {}: {}", phone, ex.getMessage());
+                } else {
+                    log.debug("OtpRequestedEvent published for phone ending ...{}", phone.substring(Math.max(0, phone.length() - 4)));
                 }
             });
     }

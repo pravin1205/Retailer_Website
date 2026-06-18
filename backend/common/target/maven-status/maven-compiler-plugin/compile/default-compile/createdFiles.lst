@@ -10,6 +10,7 @@ com\marketly\common\dto\ErrorResponse$FieldError$FieldErrorBuilder.class
 com\marketly\common\exception\ResourceNotFoundException.class
 com\marketly\common\dto\ErrorResponse$FieldError.class
 com\marketly\common\dto\ErrorResponse.class
+com\marketly\common\tenant\PlatformConstants.class
 com\marketly\common\exception\TenantNotFoundException.class
 com\marketly\common\dto\PageResponse$PaginationMeta.class
 com\marketly\common\tenant\TenantContext.class
