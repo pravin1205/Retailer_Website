@@ -143,7 +143,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: identity-service
-    image: marketly/identity-service:latest
+    image: pravinjosh/identity-service:latest
     container_name: marketly-identity-service
     ports:
       - "8081:8081"
@@ -182,7 +182,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: tenant-service
-    image: marketly/tenant-service:latest
+    image: pravinjosh/tenant-service:latest
     container_name: marketly-tenant-service
     ports:
       - "8082:8082"
@@ -219,7 +219,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: product-service
-    image: marketly/product-service:latest
+    image: pravinjosh/product-service:latest
     container_name: marketly-product-service
     ports:
       - "8083:8083"
@@ -256,7 +256,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: customer-service
-    image: marketly/customer-service:latest
+    image: pravinjosh/customer-service:latest
     container_name: marketly-customer-service
     ports:
       - "8084:8084"
@@ -289,7 +289,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: order-service
-    image: marketly/order-service:latest
+    image: pravinjosh/order-service:latest
     container_name: marketly-order-service
     ports:
       - "8085:8085"
@@ -326,7 +326,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: notification-service
-    image: marketly/notification-service:latest
+    image: pravinjosh/notification-service:latest
     container_name: marketly-notification-service
     ports:
       - "8086:8086"
@@ -367,7 +367,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: analytics-service
-    image: marketly/analytics-service:latest
+    image: pravinjosh/analytics-service:latest
     container_name: marketly-analytics-service
     ports:
       - "8087:8087"
@@ -404,10 +404,10 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: api-gateway
-    image: marketly/api-gateway:latest
+    image: pravinjosh/api-gateway:latest
     container_name: marketly-api-gateway
     ports:
-      - "8080:8080"
+      - "8081:8080"  # host 8081 avoids conflict with Jenkins which runs on :8080
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -436,7 +436,7 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-    image: marketly/frontend:latest
+    image: pravinjosh/frontend:latest
     container_name: marketly-frontend
     ports:
       - "3000:3000"
