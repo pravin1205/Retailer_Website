@@ -36,6 +36,7 @@ import { Route as STenantAdminIndexRouteImport } from './routes/s.$tenant.admin.
 import { Route as STenantPProductIdRouteImport } from './routes/s.$tenant.p.$productId'
 import { Route as STenantOrdersIdRouteImport } from './routes/s.$tenant.orders.$id'
 import { Route as STenantCCategoryRouteImport } from './routes/s.$tenant.c.$category'
+import { Route as STenantAdminWhatsappRouteImport } from './routes/s.$tenant.admin.whatsapp'
 import { Route as STenantAdminSettingsRouteImport } from './routes/s.$tenant.admin.settings'
 import { Route as STenantAdminReportsRouteImport } from './routes/s.$tenant.admin.reports'
 import { Route as STenantAdminNotificationsRouteImport } from './routes/s.$tenant.admin.notifications'
@@ -183,6 +184,11 @@ const STenantCCategoryRoute = STenantCCategoryRouteImport.update({
   path: '/c/$category',
   getParentRoute: () => STenantRoute,
 } as any)
+const STenantAdminWhatsappRoute = STenantAdminWhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => STenantAdminRoute,
+} as any)
 const STenantAdminSettingsRoute = STenantAdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -270,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/s/$tenant/admin/notifications': typeof STenantAdminNotificationsRoute
   '/s/$tenant/admin/reports': typeof STenantAdminReportsRoute
   '/s/$tenant/admin/settings': typeof STenantAdminSettingsRoute
+  '/s/$tenant/admin/whatsapp': typeof STenantAdminWhatsappRoute
   '/s/$tenant/c/$category': typeof STenantCCategoryRoute
   '/s/$tenant/orders/$id': typeof STenantOrdersIdRoute
   '/s/$tenant/p/$productId': typeof STenantPProductIdRoute
@@ -307,6 +314,7 @@ export interface FileRoutesByTo {
   '/s/$tenant/admin/notifications': typeof STenantAdminNotificationsRoute
   '/s/$tenant/admin/reports': typeof STenantAdminReportsRoute
   '/s/$tenant/admin/settings': typeof STenantAdminSettingsRoute
+  '/s/$tenant/admin/whatsapp': typeof STenantAdminWhatsappRoute
   '/s/$tenant/c/$category': typeof STenantCCategoryRoute
   '/s/$tenant/orders/$id': typeof STenantOrdersIdRoute
   '/s/$tenant/p/$productId': typeof STenantPProductIdRoute
@@ -348,6 +356,7 @@ export interface FileRoutesById {
   '/s/$tenant/admin/notifications': typeof STenantAdminNotificationsRoute
   '/s/$tenant/admin/reports': typeof STenantAdminReportsRoute
   '/s/$tenant/admin/settings': typeof STenantAdminSettingsRoute
+  '/s/$tenant/admin/whatsapp': typeof STenantAdminWhatsappRoute
   '/s/$tenant/c/$category': typeof STenantCCategoryRoute
   '/s/$tenant/orders/$id': typeof STenantOrdersIdRoute
   '/s/$tenant/p/$productId': typeof STenantPProductIdRoute
@@ -390,6 +399,7 @@ export interface FileRouteTypes {
     | '/s/$tenant/admin/notifications'
     | '/s/$tenant/admin/reports'
     | '/s/$tenant/admin/settings'
+    | '/s/$tenant/admin/whatsapp'
     | '/s/$tenant/c/$category'
     | '/s/$tenant/orders/$id'
     | '/s/$tenant/p/$productId'
@@ -427,6 +437,7 @@ export interface FileRouteTypes {
     | '/s/$tenant/admin/notifications'
     | '/s/$tenant/admin/reports'
     | '/s/$tenant/admin/settings'
+    | '/s/$tenant/admin/whatsapp'
     | '/s/$tenant/c/$category'
     | '/s/$tenant/orders/$id'
     | '/s/$tenant/p/$productId'
@@ -467,6 +478,7 @@ export interface FileRouteTypes {
     | '/s/$tenant/admin/notifications'
     | '/s/$tenant/admin/reports'
     | '/s/$tenant/admin/settings'
+    | '/s/$tenant/admin/whatsapp'
     | '/s/$tenant/c/$category'
     | '/s/$tenant/orders/$id'
     | '/s/$tenant/p/$productId'
@@ -680,6 +692,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof STenantCCategoryRouteImport
       parentRoute: typeof STenantRoute
     }
+    '/s/$tenant/admin/whatsapp': {
+      id: '/s/$tenant/admin/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/s/$tenant/admin/whatsapp'
+      preLoaderRoute: typeof STenantAdminWhatsappRouteImport
+      parentRoute: typeof STenantAdminRoute
+    }
     '/s/$tenant/admin/settings': {
       id: '/s/$tenant/admin/settings'
       path: '/settings'
@@ -810,6 +829,7 @@ interface STenantAdminRouteChildren {
   STenantAdminNotificationsRoute: typeof STenantAdminNotificationsRoute
   STenantAdminReportsRoute: typeof STenantAdminReportsRoute
   STenantAdminSettingsRoute: typeof STenantAdminSettingsRoute
+  STenantAdminWhatsappRoute: typeof STenantAdminWhatsappRoute
   STenantAdminIndexRoute: typeof STenantAdminIndexRoute
   STenantAdminOrdersIdRoute: typeof STenantAdminOrdersIdRoute
   STenantAdminProductsIdRoute: typeof STenantAdminProductsIdRoute
@@ -825,6 +845,7 @@ const STenantAdminRouteChildren: STenantAdminRouteChildren = {
   STenantAdminNotificationsRoute: STenantAdminNotificationsRoute,
   STenantAdminReportsRoute: STenantAdminReportsRoute,
   STenantAdminSettingsRoute: STenantAdminSettingsRoute,
+  STenantAdminWhatsappRoute: STenantAdminWhatsappRoute,
   STenantAdminIndexRoute: STenantAdminIndexRoute,
   STenantAdminOrdersIdRoute: STenantAdminOrdersIdRoute,
   STenantAdminProductsIdRoute: STenantAdminProductsIdRoute,
