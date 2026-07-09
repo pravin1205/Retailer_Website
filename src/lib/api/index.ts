@@ -561,4 +561,30 @@ export const qk = {
   autocomplete:(slug: string, q: string)  => ["autocomplete", slug, q] as const,
   orders:      (slug: string)             => ["orders", slug] as const,
   order:       (id: string, slug: string) => ["order", id, slug] as const,
+  whatsapp:    (slug: string)             => ["whatsapp", slug] as const,
+};
+
+// ── WhatsApp integration ──────────────────────────────────────────────────────
+
+export const getWhatsappStatus = async (slug: string) => {
+  return http.get(`/tenants/${slug}/whatsapp/status`) as Promise<{
+    connected: boolean;
+    displayNumber?: string;
+    connectedAt?: string;
+  }>;
+};
+
+export const connectWhatsapp = async (
+  slug: string,
+  payload: { phoneNumberId: string; displayNumber: string; authCode: string },
+) => {
+  return http.post(`/tenants/${slug}/whatsapp/connect`, payload) as Promise<{
+    connected: boolean;
+    displayNumber?: string;
+    connectedAt?: string;
+  }>;
+};
+
+export const disconnectWhatsapp = async (slug: string): Promise<void> => {
+  await http.delete(`/tenants/${slug}/whatsapp/disconnect`);
 };

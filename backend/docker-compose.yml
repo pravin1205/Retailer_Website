@@ -53,10 +53,11 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     healthcheck:
-      test: ["CMD", "bash", "-c", "echo ruok | nc localhost 2181 | grep imok"]
+      test: ["CMD", "bash", "-c", "echo srvr | nc localhost 2181 | grep -q Mode"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - marketly-net
 
@@ -143,7 +144,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: identity-service
-    image: pravinjosh/identity-service:latest
+    image: marketly/identity-service:latest
     container_name: marketly-identity-service
     ports:
       - "8081:8081"
@@ -182,7 +183,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: tenant-service
-    image: pravinjosh/tenant-service:latest
+    image: marketly/tenant-service:latest
     container_name: marketly-tenant-service
     ports:
       - "8082:8082"
@@ -219,7 +220,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: product-service
-    image: pravinjosh/product-service:latest
+    image: marketly/product-service:latest
     container_name: marketly-product-service
     ports:
       - "8083:8083"
@@ -256,7 +257,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: customer-service
-    image: pravinjosh/customer-service:latest
+    image: marketly/customer-service:latest
     container_name: marketly-customer-service
     ports:
       - "8084:8084"
@@ -289,7 +290,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: order-service
-    image: pravinjosh/order-service:latest
+    image: marketly/order-service:latest
     container_name: marketly-order-service
     ports:
       - "8085:8085"
@@ -326,7 +327,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: notification-service
-    image: pravinjosh/notification-service:latest
+    image: marketly/notification-service:latest
     container_name: marketly-notification-service
     ports:
       - "8086:8086"
@@ -367,7 +368,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: analytics-service
-    image: pravinjosh/analytics-service:latest
+    image: marketly/analytics-service:latest
     container_name: marketly-analytics-service
     ports:
       - "8087:8087"
@@ -404,10 +405,10 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_NAME: api-gateway
-    image: pravinjosh/api-gateway:latest
+    image: marketly/api-gateway:latest
     container_name: marketly-api-gateway
     ports:
-      - "8081:8080"  # host 8081 avoids conflict with Jenkins which runs on :8080
+      - "8080:8080"  # api-gateway listens on host port 8080
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -431,12 +432,58 @@ services:
     networks:
       - marketly-net
 
+  # ── WhatsApp Service ─────────────────────────────────────────────────────
+  whatsapp-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: whatsapp-service
+    image: marketly/whatsapp-service:latest
+    container_name: marketly-whatsapp-service
+    ports:
+      - "8088:8088"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      IDENTITY_SERVICE_URL:  http://identity-service:8081
+      TENANT_SERVICE_URL:    http://tenant-service:8082
+      PRODUCT_SERVICE_URL:   http://product-service:8083
+      CUSTOMER_SERVICE_URL:  http://customer-service:8084
+      ORDER_SERVICE_URL:     http://order-service:8085
+      META_WEBHOOK_VERIFY_TOKEN:     ${META_WEBHOOK_VERIFY_TOKEN:-dev-verify-token}
+      META_APP_SECRET:               ${META_APP_SECRET:-}
+      GROQ_API_KEY:                  ${GROQ_API_KEY:-}
+      OPENAI_API_KEY:                ${OPENAI_API_KEY:-}
+      HUGGINGFACE_API_KEY:           ${HUGGINGFACE_API_KEY:-}
+      RAZORPAY_KEY_ID:               ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET:           ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET:       ${RAZORPAY_WEBHOOK_SECRET:-}
+      WHATSAPP_TOKEN_ENCRYPTION_KEY: ${WHATSAPP_TOKEN_ENCRYPTION_KEY:-dev-32-char-encryption-key-here!!}
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8088/actuator/health | grep -q UP || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - marketly-net
+
   # ── Frontend (TanStack Start / Node.js SSR) ───────────────────────────────
   frontend:
     build:
       context: ..
       dockerfile: Dockerfile
-    image: pravinjosh/frontend:latest
+    image: marketly/frontend:latest
     container_name: marketly-frontend
     ports:
       - "3000:3000"

@@ -1,0 +1,143 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: whatsapp-service
+
+  # No database — conversations are stored in Redis with TTL
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: whatsapp-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+# ── Marketly internal service URLs ───────────────────────────────────────────
+app:
+  services:
+    identity-service-url:  ${IDENTITY_SERVICE_URL:http://localhost:8081}
+    tenant-service-url:    ${TENANT_SERVICE_URL:http://localhost:8082}
+    product-service-url:   ${PRODUCT_SERVICE_URL:http://localhost:8083}
+    customer-service-url:  ${CUSTOMER_SERVICE_URL:http://localhost:8084}
+    order-service-url:     ${ORDER_SERVICE_URL:http://localhost:8085}
+
+  # ── Meta / WhatsApp Business API ─────────────────────────────────────────
+  meta:
+    # The token you register in the Meta App dashboard under Webhooks.
+    # Meta sends this in GET /whatsapp/webhook?hub.verify_token=<value>
+    # during the one-time webhook verification step.
+    verify-token: ${META_WEBHOOK_VERIFY_TOKEN:dev-verify-token}
+
+    # App Secret from Meta App → Settings → Basic.
+    # Used to validate X-Hub-Signature-256 on every inbound webhook POST.
+    app-secret: ${META_APP_SECRET:}
+
+    # Meta Graph API base URL. Versioned; bump this when upgrading.
+    graph-api-url: https://graph.facebook.com/v19.0
+
+  # ── OpenAI — kept for backward-compat property resolution ────────────────
+  # Individual provider keys below (app.nlp.* / app.stt.*) take precedence.
+  # These act as default fallbacks if provider-specific keys are not set.
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+
+  # ════════════════════════════════════════════════════════════════════════
+  # NLP PROVIDER CHAIN
+  # Priority order: Groq (1) → OpenAI (2) → HuggingFace (3)
+  # Each provider is tried in order. First successful result is used.
+  # A provider is automatically skipped if its api-key is blank.
+  # ════════════════════════════════════════════════════════════════════════
+  nlp:
+    groq:
+      api-key:     ${GROQ_API_KEY:}
+      model:       llama-3.1-8b-instant   # fastest Groq model, good Indian language support
+      max-tokens:  512
+      temperature: 0.1
+
+    openai:
+      api-key:     ${OPENAI_API_KEY:}
+      model:       gpt-4o-mini
+      max-tokens:  512
+      temperature: 0.1
+
+    huggingface:
+      api-key: ${HUGGINGFACE_API_KEY:}
+      model:   mistralai/Mistral-7B-Instruct-v0.3
+
+  # ════════════════════════════════════════════════════════════════════════
+  # STT PROVIDER CHAIN
+  # Priority order: Groq Whisper (1) → OpenAI Whisper (2) → HuggingFace (3)
+  # Groq hosts the same whisper-large-v3-turbo weights at 10x lower cost
+  # and 10x higher speed — it is the recommended primary provider.
+  # ════════════════════════════════════════════════════════════════════════
+  stt:
+    groq:
+      api-key: ${GROQ_API_KEY:}
+      # Model: whisper-large-v3-turbo — same weights as OpenAI, on Groq LPU hardware
+
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      # Model: whisper-1 (OpenAI's hosted Whisper large-v2)
+
+    huggingface:
+      api-key: ${HUGGINGFACE_API_KEY:}
+      # Model: openai/whisper-large-v3 (free tier, cold-start latency ~30s)
+
+  # ── Razorpay — payment links sent inside WhatsApp chat ───────────────────
+  razorpay:
+    key-id:      ${RAZORPAY_KEY_ID:}
+    key-secret:  ${RAZORPAY_KEY_SECRET:}
+    # Webhook secret from Razorpay dashboard → Webhooks → Secret.
+    # Used to validate X-Razorpay-Signature on payment webhook POSTs.
+    webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
+    # Payment link expires after this many minutes of inactivity
+    link-expiry-minutes: 30
+
+  # ── Conversation session settings ────────────────────────────────────────
+  conversation:
+    # Redis TTL for an idle conversation session.
+    # If the customer sends no message for this many minutes, the session
+    # expires and the next message starts a fresh conversation.
+    session-ttl-minutes: 30
+
+  # ── AES-256 encryption for Meta access tokens stored in tenant_settings ──
+  token-encryption-key: ${WHATSAPP_TOKEN_ENCRYPTION_KEY:dev-32-char-encryption-key-here!!}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.marketly: INFO
+    # Reduce noise from WebClient HTTP logs in dev
+    reactor.netty.http.client: WARN

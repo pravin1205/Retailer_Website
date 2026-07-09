@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Customer Service – High Level Architecture</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #f8fafc;
+  padding: 36px 40px;
+  min-width: 1320px;
+}
+
+/* ── Title ── */
+.page-title {
+  text-align: center;
+  font-size: 20pt;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid #2563eb;
+  margin-bottom: 6px;
+}
+.page-sub {
+  text-align: center;
+  font-size: 9pt;
+  color: #64748b;
+  margin-bottom: 32px;
+}
+
+/* ══════════════════════════════════
+   FLOW DIAGRAM — 3 swim lanes
+   Top:    External Callers
+   Middle: Customer Service Core
+   Bottom: Connected Services
+   ══════════════════════════════════ */
+
+.flow-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Lane header ── */
+.lane-label {
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #fff;
+  padding: 5px 16px;
+  border-radius: 8px 8px 0 0;
+  display: inline-block;
+  margin-bottom: -1px;
+}
+
+/* ── Lane body ── */
+.lane {
+  border: 2px solid #e2e8f0;
+  border-radius: 0 12px 12px 12px;
+  padding: 18px 20px;
+  margin-bottom: 0;
+  background: #fff;
+  position: relative;
+}
+
+/* ── Caller lane ── */
+.lane-callers { border-color: #93c5fd; border-radius: 0 12px 12px 12px; }
+.lane-callers .lane-label { background: #2563eb; }
+
+/* ── Core lane ── */
+.lane-core { border-color: #6ee7b7; border-top: none; border-radius: 0 0 0 0; margin-top: 0; }
+.lane-core .lane-label { background: #059669; }
+
+/* ── Connected lane ── */
+.lane-connected { border-color: #fbbf24; border-radius: 0 0 12px 12px; margin-top: 0; border-top: none; }
+.lane-connected .lane-label { background: #d97706; }
+
+/* ── Horizontal row inside a lane ── */
+.hrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+/* ── Arrow between nodes ── */
+.arrow-h {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  min-width: 50px;
+  gap: 2px;
+  padding-top: 22px;
+}
+.arrow-line {
+  width: 100%;
+  height: 2px;
+  background: #94a3b8;
+  position: relative;
+}
+.arrow-line::after {
+  content: '▶';
+  position: absolute;
+  right: -8px;
+  top: -8px;
+  font-size: 10px;
+  color: #94a3b8;
+}
+.arrow-label-h {
+  font-size: 7pt;
+  color: #64748b;
+  text-align: center;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+
+/* ── Vertical arrow (down) ── */
+.arrow-down-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0;
+  gap: 2px;
+}
+.arrow-v {
+  font-size: 18px;
+  color: #94a3b8;
+  line-height: 1;
+}
+.arrow-v-label {
+  font-size: 7pt;
+  color: #64748b;
+  text-align: center;
+}
+
+/* ── Connector row between lanes ── */
+.connector-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  background: #f8fafc;
+  padding: 8px 20px;
+  border-left: 2px solid #e2e8f0;
+  border-right: 2px solid #e2e8f0;
+}
+.conn-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.conn-arrow { font-size: 14px; color: #94a3b8; }
+.conn-label { font-size: 7pt; color: #64748b; text-align: center; white-space: nowrap; }
+
+/* ══════════════
+   NODE CARDS
+   ══════════════ */
+.node {
+  border-radius: 10px;
+  padding: 10px 13px;
+  min-width: 140px;
+  max-width: 200px;
+  font-size: 8.5pt;
+  flex-shrink: 0;
+}
+.node-title {
+  font-weight: 700;
+  font-size: 9.5pt;
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  padding-bottom: 5px;
+}
+.node-item {
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  color: #1e293b;
+  line-height: 1.45;
+  font-size: 8pt;
+}
+.node-item:last-child { border-bottom: none; }
+
+/* node colour variants */
+.node-blue   { background:#eff6ff; border:1.5px solid #93c5fd; }
+.node-blue .node-title { color:#1d4ed8; }
+
+.node-green  { background:#f0fdf4; border:1.5px solid #86efac; }
+.node-green .node-title { color:#15803d; }
+
+.node-teal   { background:#f0fdfa; border:1.5px solid #5eead4; }
+.node-teal .node-title { color:#0d9488; }
+
+.node-purple { background:#faf5ff; border:1.5px solid #c4b5fd; }
+.node-purple .node-title { color:#7c3aed; }
+
+.node-amber  { background:#fffbeb; border:1.5px solid #fde68a; }
+.node-amber .node-title { color:#b45309; }
+
+.node-rose   { background:#fff1f2; border:1.5px solid #fda4af; }
+.node-rose .node-title { color:#be123c; }
+
+.node-slate  { background:#f8fafc; border:1.5px solid #cbd5e1; }
+.node-slate .node-title { color:#475569; }
+
+.node-orange { background:#fff7ed; border:1.5px solid #fdba74; }
+.node-orange .node-title { color:#c2410c; }
+
+/* ── Method badge ── */
+.m { display:inline-block; padding:1px 4px; border-radius:3px; font-size:7pt; font-weight:700; margin-right:2px; }
+.get   { background:#dcfce7; color:#166534; }
+.post  { background:#dbeafe; color:#1e40af; }
+.put   { background:#fef9c3; color:#854d0e; }
+.del   { background:#fee2e2; color:#991b1b; }
+.patch { background:#f3e8ff; color:#6b21a8; }
+
+/* ── DB / Entity block ── */
+.entity-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.entity-card {
+  background: #fefce8;
+  border: 1.5px solid #fde047;
+  border-radius: 10px;
+  padding: 10px 13px;
+  min-width: 160px;
+  font-size: 8pt;
+}
+.entity-title {
+  font-weight: 700;
+  font-size: 9pt;
+  color: #92400e;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #fde047;
+  padding-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.field {
+  font-family: 'Consolas', monospace;
+  font-size: 7.5pt;
+  color: #374151;
+  padding: 1.5px 0;
+  border-bottom: 1px solid #fef9c3;
+}
+.field:last-child { border-bottom: none; }
+.field .pk  { color: #dc2626; font-weight: 700; margin-right: 3px; }
+.field .fk  { color: #2563eb; margin-right: 3px; }
+.field .idx { color: #7c3aed; margin-right: 3px; }
+
+/* ── Kafka event row ── */
+.kafka-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.kafka-card {
+  border-radius: 10px;
+  padding: 10px 13px;
+  font-size: 8pt;
+  min-width: 175px;
+}
+.kafka-in  { background:#fdf4ff; border:1.5px solid #d8b4fe; }
+.kafka-out { background:#fff7ed; border:1.5px solid #fb923c; }
+.kafka-title {
+  font-weight: 700;
+  font-size: 8.5pt;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  padding-bottom: 4px;
+}
+.kafka-in  .kafka-title { color:#7e22ce; }
+.kafka-out .kafka-title { color:#c2410c; }
+.kafka-item {
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  color:#1e293b;
+  line-height:1.5;
+}
+.kafka-item:last-child { border-bottom:none; }
+
+/* ── Spacer ── */
+.gap { flex: 1; }
+
+/* ── Core inner layout ── */
+.core-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+.core-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.core-section-title {
+  font-size: 8pt;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #64748b;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 4px;
+  margin-bottom: 2px;
+}
+
+/* ── Connected services grid ── */
+.connected-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+.svc-card {
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 8pt;
+}
+.svc-title {
+  font-weight: 700;
+  font-size: 8.5pt;
+  margin-bottom: 7px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.svc-item {
+  padding: 2.5px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  color:#374151;
+  line-height:1.45;
+}
+.svc-item:last-child { border-bottom:none; }
+.arrow-in  { color:#7e22ce; font-size: 9pt; margin-right: 3px; }
+.arrow-out { color:#c2410c; font-size: 9pt; margin-right: 3px; }
+
+/* ── Infra bar ── */
+.infra-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: #f1f5f9;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 18px;
+  margin-top: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.infra-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8pt;
+  color: #475569;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+.infra-icon { font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="page-title">Customer Service — High Level Architecture</div>
+<p class="page-sub">Marketly Multi-Tenant Commerce · Port :8084 · Schema: customer · Spring Boot 3.3 · Java 17</p>
+
+<div class="flow-wrap">
+
+  <!-- ══════════════════════════════════════════
+       LANE 1 — CALLERS
+       ══════════════════════════════════════════ -->
+  <div>
+    <span class="lane-label" style="background:#2563eb;">Callers &amp; Entry Point</span>
+    <div class="lane lane-callers">
+      <div class="hrow" style="align-items:flex-start; gap:10px;">
+
+        <!-- Client: Web/PWA -->
+        <div class="node node-blue" style="min-width:155px;">
+          <div class="node-title">🌐 Web / PWA</div>
+          <div class="node-item">Customer shopping app</div>
+          <div class="node-item">localhost:3000</div>
+          <div class="node-item">React + TanStack</div>
+        </div>
+
+        <div class="arrow-h">
+          <div class="arrow-line"></div>
+          <div class="arrow-label-h">HTTPS</div>
+        </div>
+
+        <!-- API Gateway -->
+        <div class="node node-purple" style="min-width:195px;">
+          <div class="node-title">🔀 API Gateway :8080</div>
+          <div class="node-item">✅ JWT validation (HS256, 15 min)</div>
+          <div class="node-item">✅ Tenant resolution<br><span style="color:#64748b;font-size:7.5pt;">Host → slug → X-Tenant-ID</span></div>
+          <div class="node-item">✅ RBAC headers<br><span style="color:#64748b;font-size:7.5pt;">X-User-ID · X-Tenant-ID · X-Roles</span></div>
+          <div class="node-item">✅ Rate limiting (Redis)</div>
+          <div class="node-item">✅ Route /api/v1/customers/**</div>
+        </div>
+
+        <div class="arrow-h">
+          <div class="arrow-line"></div>
+          <div class="arrow-label-h">HTTP :8084</div>
+        </div>
+
+        <!-- Customer Service entry -->
+        <div class="node node-green" style="min-width:190px;">
+          <div class="node-title">⚙️ Customer Service :8084</div>
+          <div class="node-item">Spring Boot REST API</div>
+          <div class="node-item">CustomerController</div>
+          <div class="node-item">CustomerService (business logic)</div>
+          <div class="node-item">Tenant-scoped: all queries filtered<br><span style="color:#64748b;font-size:7.5pt;">Hibernate @Filter(tenant_id)</span></div>
+        </div>
+
+        <div class="arrow-h">
+          <div class="arrow-line"></div>
+          <div class="arrow-label-h">read/write</div>
+        </div>
+
+        <!-- Auth Service -->
+        <div class="node node-slate" style="min-width:170px;">
+          <div class="node-title">🔐 Identity Service :8081</div>
+          <div class="node-item">Issues JWT on OTP login</div>
+          <div class="node-item">Fires identity.user.registered</div>
+          <div class="node-item">Token validated by gateway</div>
+        </div>
+
+        <div class="gap"></div>
+
+        <!-- WhatsApp -->
+        <div class="node node-teal" style="min-width:155px;">
+          <div class="node-title">💬 WhatsApp :8088</div>
+          <div class="node-item"><span class="m get">GET</span>/me/addresses</div>
+          <div class="node-item">Address list for checkout</div>
+          <div class="node-item">Bearer token in header</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Connector arrows down -->
+  <div class="connector-row" style="border-color:#6ee7b7;">
+    <div class="conn-item"><div class="conn-arrow">↕</div><div class="conn-label">Profile CRUD</div></div>
+    <div class="conn-item"><div class="conn-arrow">↕</div><div class="conn-label">Address CRUD</div></div>
+    <div class="conn-item"><div class="conn-arrow">↓</div><div class="conn-label">Loyalty points</div></div>
+    <div class="conn-item"><div class="conn-arrow">↕</div><div class="conn-label">Tier calculation</div></div>
+    <div class="conn-item"><div class="conn-arrow">↓</div><div class="conn-label">Kafka events</div></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       LANE 2 — CUSTOMER SERVICE CORE
+       ══════════════════════════════════════════ -->
+  <div>
+    <span class="lane-label" style="background:#059669;">Customer Service Core</span>
+    <div class="lane lane-core" style="border:2px solid #6ee7b7; border-radius:0 12px 12px 12px;">
+
+      <div class="core-grid">
+
+        <!-- Section A: APIs -->
+        <div class="core-section">
+          <div class="core-section-title">📡 REST APIs</div>
+
+          <div class="node node-green" style="max-width:none;">
+            <div class="node-title">👤 Profile Management</div>
+            <div class="node-item"><span class="m get">GET</span> /api/v1/customers/me<br><span style="color:#64748b;font-size:7.5pt;">Get profile for this tenant</span></div>
+            <div class="node-item"><span class="m patch">PATCH</span> /api/v1/customers/me<br><span style="color:#64748b;font-size:7.5pt;">Update name, email, phone, DOB</span></div>
+            <div class="node-item"><span class="m get">GET</span> /api/v1/customers<br><span style="color:#64748b;font-size:7.5pt;">List all (seller admin view) + search</span></div>
+          </div>
+
+          <div class="node node-teal" style="max-width:none;">
+            <div class="node-title">📍 Address Management</div>
+            <div class="node-item"><span class="m get">GET</span> /me/addresses<br><span style="color:#64748b;font-size:7.5pt;">List all saved addresses</span></div>
+            <div class="node-item"><span class="m post">POST</span> /me/addresses<br><span style="color:#64748b;font-size:7.5pt;">Add new — Home / Work / Other</span></div>
+            <div class="node-item"><span class="m put">PUT</span> /me/addresses/:id<br><span style="color:#64748b;font-size:7.5pt;">Update + set as default</span></div>
+            <div class="node-item"><span class="m del">DEL</span> /me/addresses/:id<br><span style="color:#64748b;font-size:7.5pt;">Soft delete (deleted_at)</span></div>
+          </div>
+
+          <div class="node node-amber" style="max-width:none;">
+            <div class="node-title">🏆 Loyalty & Rewards</div>
+            <div class="node-item">Award 1 pt / ₹10 on payment</div>
+            <div class="node-item">Tier auto-recalculate on every order</div>
+            <div class="node-item">Track totalOrders + totalSpent</div>
+            <div class="node-item">Welcome 50 pts on registration</div>
+          </div>
+        </div>
+
+        <!-- Section B: Entities -->
+        <div class="core-section">
+          <div class="core-section-title">🗃️ Entities (Schema: customer)</div>
+
+          <div class="entity-card">
+            <div class="entity-title">📋 customers</div>
+            <div class="field"><span class="pk">PK</span> id (UUID)</div>
+            <div class="field"><span class="idx">IDX</span> tenant_id (UUID)</div>
+            <div class="field"><span class="fk">FK</span> user_id (UUID)</div>
+            <div class="field">first_name · last_name</div>
+            <div class="field">phone · email</div>
+            <div class="field">date_of_birth</div>
+            <div class="field">loyalty_points (INT)</div>
+            <div class="field">tier (BRONZE→PLATINUM)</div>
+            <div class="field">total_orders (INT)</div>
+            <div class="field">total_spent (DECIMAL)</div>
+            <div class="field">created_at · updated_at</div>
+            <div class="field">deleted_at (soft delete)</div>
+            <div style="margin-top:5px;font-size:7.5pt;color:#92400e;">UNIQUE (tenant_id, user_id)</div>
+          </div>
+
+          <div class="entity-card">
+            <div class="entity-title">📍 addresses</div>
+            <div class="field"><span class="pk">PK</span> id (UUID)</div>
+            <div class="field"><span class="fk">FK</span> customer_id (UUID)</div>
+            <div class="field"><span class="idx">IDX</span> tenant_id (UUID)</div>
+            <div class="field">label (Home/Work/Other)</div>
+            <div class="field">line1 · line2</div>
+            <div class="field">city · state · pincode</div>
+            <div class="field">country (default: IN)</div>
+            <div class="field">latitude · longitude</div>
+            <div class="field">is_default (BOOLEAN)</div>
+            <div class="field">deleted_at (soft delete)</div>
+          </div>
+
+          <div class="node node-slate" style="max-width:none;">
+            <div class="node-title">🔗 Relationships</div>
+            <div class="node-item">Customer ←1:N→ Addresses</div>
+            <div class="node-item">Customer scoped to 1 Tenant</div>
+            <div class="node-item">1 User → N Customers<br><span style="color:#64748b;font-size:7.5pt;">(one profile per store)</span></div>
+          </div>
+        </div>
+
+        <!-- Section C: Business Logic + Cache -->
+        <div class="core-section">
+          <div class="core-section-title">⚡ Business Logic &amp; Cache</div>
+
+          <div class="node node-rose" style="max-width:none;">
+            <div class="node-title">🏆 Tier Calculation Logic</div>
+            <div class="node-item">BRONZE → default (0 pts)</div>
+            <div class="node-item">SILVER → 200 pts OR 5 orders</div>
+            <div class="node-item">GOLD → 1,000 pts OR 20 orders</div>
+            <div class="node-item">PLATINUM → 5,000 pts OR 50 orders</div>
+            <div class="node-item" style="margin-top:3px;">Auto-recalculates on every<br>awardLoyaltyPoints() call</div>
+          </div>
+
+          <div class="node node-purple" style="max-width:none;">
+            <div class="node-title">🔴 Redis Cache</div>
+            <div class="node-item">Customer profile cache</div>
+            <div class="node-item">Frequently accessed data</div>
+            <div class="node-item">Rate limit counters (gateway)</div>
+            <div class="node-item">OTP storage (identity-service)</div>
+          </div>
+
+          <div class="node node-slate" style="max-width:none;">
+            <div class="node-title">🛡 Data Isolation</div>
+            <div class="node-item">Hibernate @Filter on every query</div>
+            <div class="node-item">condition: tenant_id = :tenantId</div>
+            <div class="node-item">No cross-tenant data leaks</div>
+            <div class="node-item">Soft delete on all records</div>
+          </div>
+
+          <div class="node node-slate" style="max-width:none;">
+            <div class="node-title">📖 OpenAPI / Swagger</div>
+            <div class="node-item">/swagger-ui.html</div>
+            <div class="node-item">/v3/api-docs</div>
+            <div class="node-item">/actuator/health</div>
+          </div>
+        </div>
+
+      </div><!-- end core-grid -->
+
+      <!-- Kafka events row inside core lane -->
+      <div style="margin-top:16px;">
+        <div class="core-section-title" style="margin-bottom:8px;">📨 Kafka Event Processing</div>
+        <div class="kafka-row">
+
+          <div class="kafka-card kafka-in" style="flex:1;">
+            <div class="kafka-title">📥 Consumes (Inbound Events)</div>
+            <div class="kafka-item"><strong>identity.user.registered</strong><br>
+              <span style="color:#64748b;font-size:7.5pt;">Consumer group: customer-service-identity-group<br>
+              → Resolves tenantSlug → UUID via tenant-service REST<br>
+              → Auto-creates Customer profile (getOrCreate)</span>
+            </div>
+            <div class="kafka-item" style="margin-top:6px;"><strong>order.payment.completed</strong><br>
+              <span style="color:#64748b;font-size:7.5pt;">Consumer group: customer-service-order-group<br>
+              → Awards loyalty points (1 pt / ₹10)<br>
+              → Calls recordOrder() → recalculateTier()</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;padding:0 12px;font-size:22px;color:#94a3b8;padding-top:16px;">⟷</div>
+
+          <div class="kafka-card kafka-out" style="flex:1;">
+            <div class="kafka-title">📤 Produces (Outbound Events)</div>
+            <div class="kafka-item"><strong>customer.profile.updated</strong><br>
+              <span style="color:#64748b;font-size:7.5pt;">→ notification-service consumes<br>
+              Triggers profile update confirmation email</span>
+            </div>
+            <div class="kafka-item" style="margin-top:6px;"><strong>customer.tier.changed</strong><br>
+              <span style="color:#64748b;font-size:7.5pt;">→ notification-service consumes<br>
+              Sends tier upgrade push/email to customer</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;padding:0 12px;font-size:22px;color:#94a3b8;padding-top:16px;">→</div>
+
+          <div class="node node-purple" style="flex:1; max-width:none;">
+            <div class="node-title">🐘 PostgreSQL :5432</div>
+            <div class="node-item">Schema: customer</div>
+            <div class="node-item">2 tables: customers, addresses</div>
+            <div class="node-item">Flyway: V1, V2, V3 migrations</div>
+            <div class="node-item">Primary + Replica (prod)</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- end lane-core -->
+  </div>
+
+  <!-- Connector arrows to connected services -->
+  <div class="connector-row" style="border-color:#fbbf24;">
+    <div class="conn-item"><div class="conn-arrow">↓</div><div class="conn-label">identity.user.registered</div></div>
+    <div class="conn-item"><div class="conn-arrow">↑</div><div class="conn-label">tenantSlug → UUID REST</div></div>
+    <div class="conn-item"><div class="conn-arrow">↓</div><div class="conn-label">order.payment.completed</div></div>
+    <div class="conn-item"><div class="conn-arrow">↑</div><div class="conn-label">GET /me/addresses</div></div>
+    <div class="conn-item"><div class="conn-arrow">↓</div><div class="conn-label">customer events</div></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       LANE 3 — CONNECTED SERVICES
+       ══════════════════════════════════════════ -->
+  <div>
+    <span class="lane-label" style="background:#d97706;">Connected Services</span>
+    <div class="lane lane-connected" style="border:2px solid #fbbf24; border-radius:0 0 12px 12px;">
+      <div class="connected-grid">
+
+        <div class="svc-card" style="background:#eff6ff; border:1.5px solid #93c5fd;">
+          <div class="svc-title" style="color:#1d4ed8;">🔐 Identity Service<br>:8081</div>
+          <div class="svc-item"><span class="arrow-in">→</span>Fires identity.user.registered</div>
+          <div class="svc-item"><span class="arrow-in">→</span>Carries userId, email, phone, tenantSlug</div>
+          <div class="svc-item"><span class="arrow-out">←</span>JWT validated by API Gateway</div>
+          <div class="svc-item"><span class="arrow-out">←</span>X-User-ID injected in headers</div>
+        </div>
+
+        <div class="svc-card" style="background:#faf5ff; border:1.5px solid #c4b5fd;">
+          <div class="svc-title" style="color:#7c3aed;">🏢 Tenant Service<br>:8082</div>
+          <div class="svc-item"><span class="arrow-out">←</span>UserRegisteredConsumer calls</div>
+          <div class="svc-item"><span class="arrow-out">←</span>GET /api/v1/tenants/{slug}</div>
+          <div class="svc-item"><span class="arrow-out">←</span>Resolves slug → tenantId UUID</div>
+          <div class="svc-item"><span class="arrow-out">←</span>Used to scope customer profile</div>
+        </div>
+
+        <div class="svc-card" style="background:#fff7ed; border:1.5px solid #fdba74;">
+          <div class="svc-title" style="color:#c2410c;">🛒 Order Service<br>:8085</div>
+          <div class="svc-item"><span class="arrow-in">→</span>Fires order.payment.completed</div>
+          <div class="svc-item"><span class="arrow-in">→</span>Carries customerId + amount</div>
+          <div class="svc-item"><span class="arrow-out">←</span>Reads GET /me/addresses at checkout</div>
+          <div class="svc-item"><span class="arrow-out">←</span>Gets default address for order</div>
+        </div>
+
+        <div class="svc-card" style="background:#fff1f2; border:1.5px solid #fda4af;">
+          <div class="svc-title" style="color:#be123c;">🔔 Notification Service<br>:8086</div>
+          <div class="svc-item"><span class="arrow-in">→</span>Consumes customer.tier.changed</div>
+          <div class="svc-item"><span class="arrow-in">→</span>Consumes customer.profile.updated</div>
+          <div class="svc-item"><span class="arrow-out">←</span>Sends tier upgrade email/push</div>
+          <div class="svc-item"><span class="arrow-out">←</span>Sends welcome email on join</div>
+        </div>
+
+        <div class="svc-card" style="background:#f0fdfa; border:1.5px solid #5eead4;">
+          <div class="svc-title" style="color:#0d9488;">💬 WhatsApp Service<br>:8088</div>
+          <div class="svc-item"><span class="arrow-out">←</span>GET /api/v1/customers/me/addresses</div>
+          <div class="svc-item"><span class="arrow-out">←</span>Address list for WhatsApp checkout</div>
+          <div class="svc-item"><span class="arrow-out">←</span>Uses Bearer JWT token</div>
+          <div class="svc-item"><span class="arrow-out">←</span>X-Tenant-ID + X-User-ID headers</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- end flow-wrap -->
+
+<!-- ── Infra bar ── -->
+<div class="infra-bar">
+  <span style="font-weight:700;font-size:9pt;color:#475569;">Infrastructure:</span>
+  <div class="infra-item"><span class="infra-icon">🐋</span> Docker · marketly-net</div>
+  <div class="infra-item"><span class="infra-icon">🐘</span> PostgreSQL 16 · :5432</div>
+  <div class="infra-item"><span class="infra-icon">🔴</span> Redis 7 · :6379</div>
+  <div class="infra-item"><span class="infra-icon">📨</span> Apache Kafka · :29092</div>
+  <div class="infra-item"><span class="infra-icon">☕</span> Java 17 · Spring Boot 3.3.2</div>
+  <div class="infra-item"><span class="infra-icon">🔄</span> Flyway Migrations</div>
+  <div class="infra-item"><span class="infra-icon">🔥</span> Prometheus · :9090</div>
+  <div class="infra-item"><span class="infra-icon">📈</span> Grafana · :3001</div>
+  <div class="infra-item"><span class="infra-icon">🔍</span> Zipkin · :9411</div>
+  <div class="infra-item"><span class="infra-icon">🔁</span> Jenkins CI/CD</div>
+</div>
+
+</body>
+</html>

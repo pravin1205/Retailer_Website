@@ -27,6 +27,7 @@ COPY customer-service/   customer-service/
 COPY order-service/      order-service/
 COPY notification-service/ notification-service/
 COPY analytics-service/  analytics-service/
+COPY whatsapp-service/   whatsapp-service/
 
 # Build the target module + all dependencies
 # 'package' phase triggers spring-boot:repackage → executable fat jar
