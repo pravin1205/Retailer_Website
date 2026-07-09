@@ -18,6 +18,11 @@ bunfig.toml
 # IntelliJ
 .idea/
 
+# Environment / secrets — never commit these
+.env
+backend/.env
+*.env
+
 # Temp / scratch files
 dev_out.txt
 done
